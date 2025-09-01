@@ -58,12 +58,7 @@ Se vuoi contribuire o eseguire il codice sorgente:
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Esegui lo Script:**
-    ```bash
-    python YT_Manager_Windos.py
-    ```
-    for Windows 
-
+    
 ### Roadmap Futura e Contributi
 
 Questo progetto è in continua evoluzione! Ecco alcune delle funzionalità previste:
@@ -122,11 +117,7 @@ If you want to contribute or run the source code:
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Run the Script:**
-    ```bash
-    python YT_Manager.py
-    ```
-
+    
 ### Future Roadmap & Contributions
 
 This project is constantly evolving! Here are some of the planned features:
