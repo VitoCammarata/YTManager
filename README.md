@@ -1,7 +1,3 @@
-# YTManager
-A robust manager for downloading and synchronizing YouTube content (playlists, videos) into a local library of MP3/MP4 files.
-# YTManager v1.0.0
-
 ![Licenza MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Ultima Release](https://img.shields.io/github/v/release/TUO_USERNAME/TUO_REPO)
 
