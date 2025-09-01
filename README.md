@@ -4,8 +4,6 @@
 <!-- Ti consiglio di aggiungere qui uno screenshot o una GIF del programma in azione! -->
 <!-- Esempio: <img src="screenshot.gif" width="700"> -->
 
-Un'applicazione cross-platform per scaricare e sincronizzare le tue playlist di YouTube in file MP3 locali in modo semplice e robusto.
-
 ---
 
 [English Version](#english) | [Versione Italiana](#italiano)
