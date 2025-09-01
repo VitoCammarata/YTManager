@@ -106,7 +106,7 @@ def make_path(folder_name: str) -> str:
     Returns:
         The full path to the JSON file (e.g., "My Playlist/.My Playlist.json").
     """
-    return os.path.join(folder_name, f"{os.path.basename(folder_name)}.json" if os.name == "nt" else f".{os.path.basename(folder_name)}.json")
+    return os.path.join(folder_name, f"{os.path.basename(folder_name)}.json")
 
 def sanitize_folder_name(name: str) -> str:
     """
@@ -200,6 +200,8 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
     """
     tmp_folder = os.path.join(folder_name, "tmp" if os.name == "nt" else ".tmp")
     os.makedirs(tmp_folder, exist_ok=True)
+    if os.name == "nt":
+        os.system(f'attrib +h "{tmp_folder}"')
 
     titles_map = {}
     ordered_titles = []
@@ -248,9 +250,9 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
         shutil.rmtree(tmp_folder)
     except Exception as e:
         errors.append((".tmp cleanup failed", str(e)))
-
-    if os.name == "nt":
-        os.system(f'attrib +h "{json_filename}"')
+    finally:
+        if os.name == "nt":
+            os.system(f'attrib +h "{json_filename}"')
 
     return errors
 
@@ -276,6 +278,7 @@ def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict,
 
     try:
         json_filename = make_path(folder_name)
+        os.system(f'attrib -h "{json_filename}"')
         try:
             if os.path.exists(json_filename):
                 with open(json_filename, "r", encoding="utf-8") as f:
@@ -308,6 +311,7 @@ def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict,
         # Overwrite the old JSON with the new, perfectly ordered map.
         with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(new_titles_map, f, ensure_ascii=False, indent=4)
+
         if os.name == "nt":    
             os.system(f'attrib +h "{json_filename}"')
 
@@ -380,6 +384,7 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
                     os.remove(os.path.join(folder_name, f))
                 except Exception as e:
                     errors.append((f"Error deleting '{f}'", str(e)))
+
     return errors
 
 def folder_backup(folder_name: str) -> tuple[Optional[str], Optional[str]]:
@@ -404,8 +409,8 @@ def folder_backup(folder_name: str) -> tuple[Optional[str], Optional[str]]:
 
     try:
         shutil.copytree(folder_name, backup_folder, ignore=shutil.ignore_patterns("bak" if os.name == "nt" else ".bak"))
-        if os.name == "nt":
-            os.system(f'attrib +h "{backup_folder}"')
+        """if os.name == "nt":
+            os.system(f'attrib +h "{backup_folder}"')"""
 
         return backup_folder, None
     except Exception as e:
