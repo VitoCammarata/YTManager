@@ -60,8 +60,9 @@ Se vuoi contribuire o eseguire il codice sorgente:
     ```
 4.  **Esegui lo Script:**
     ```bash
-    python YT_Manager.py
+    python YT_Manager_Windos.py
     ```
+    for Windows 
 
 ### Roadmap Futura e Contributi
 
