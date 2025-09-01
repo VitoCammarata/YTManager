@@ -1,4 +1,4 @@
-# YTManager v1.0.0
+# YTManager v0.1.0
 
 ![Licenza MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Ultima Release](https://img.shields.io/github/v/release/VitoCammarata/YTManager)
