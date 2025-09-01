@@ -23,7 +23,7 @@ YTManager ti permette di mantenere una copia locale delle tue playlist preferite
 1.  **Download:** Scarica un'intera playlist, convertendo ogni video in un file MP3 di alta qualità. Il processo è resiliente e può essere ripreso in caso di interruzioni.
 2.  **Update:** Sincronizza una cartella già scaricata con la versione online della playlist. Aggiunge i nuovi video, rimuove quelli eliminati e riordina i file per rispecchiare l'ordine attuale.
 
-**⚠️ Nota Importante:** Lo script funziona esclusivamente con **playlist pubbliche o non in elenco**. Le playlist private non sono supportate perché l'applicazione non implementa un sistema di login, garantendo così la privacy dell'utente senza richiedere l'accesso al suo account YouTube.
+**⚠️ Nota Importante:** Lo script funziona esclusivamente con **playlist pubbliche o non in elenco**. Le playlist private non sono supportate perché l'applicazione non implementa un sistema di login, garantendo così la privacy dell'utente senza richiedere l'accesso all'account YouTube.
 
 ### Come si Usa
 
