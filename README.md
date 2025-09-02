@@ -20,7 +20,7 @@
 Un'applicazione cross-platform per scaricare e sincronizzare le tue playlist di YouTube in file MP3 locali in modo semplice e robusto.
 
 YTManager ti permette di mantenere una copia locale delle tue playlist preferite. Offre due funzionalità principali:
-1.  **Download:** Scarica un'intera playlist, convertendo ogni video in un file MP3 di alta qualità. Il processo è resiliente e può essere ripreso in caso di interruzioni.
+1.  **Download:** Scarica un'intera playlist, convertendo ogni video in un file MP3 di alta qualità e **includendo automaticamente la miniatura del video come copertina dell'album (album art)**. Il processo è resiliente e può essere ripreso in caso di interruzioni.
 2.  **Update:** Sincronizza una cartella già scaricata con la versione online della playlist. Aggiunge i nuovi video, rimuove quelli eliminati e riordina i file per rispecchiare l'ordine attuale.
 
 **⚠️ Nota Importante:** Lo script funziona esclusivamente con **playlist pubbliche o non in elenco**. Le playlist private non sono supportate perché l'applicazione non implementa un sistema di login, garantendo così la privacy dell'utente senza richiedere l'accesso all'account YouTube.
@@ -79,7 +79,7 @@ Hai un'idea o hai trovato un bug? Apri una **[Issue](https://github.com/VitoCamm
 A cross-platform application to easily and robustly download and synchronize your YouTube playlists into local MP3 files.
 
 YTManager allows you to keep a local copy of your favorite playlists. It offers two main features:
-1.  **Download:** Downloads an entire playlist, converting each video into a high-quality MP3 file. The process is resilient and can be resumed if interrupted.
+1.  **Download:** Downloads an entire playlist, converting each video into a high-quality MP3 file and **automatically embedding the video's thumbnail as the cover art (album art)**. The process is resilient and can be resumed if interrupted.
 2.  **Update:** Synchronizes an already downloaded folder with its online counterpart. It adds new videos, removes deleted ones, and reorders files to match the current playlist order.
 
 **⚠️ Important Note:** The script works exclusively with **public or unlisted playlists**. Private playlists are not supported because the application does not implement a login feature, thus ensuring user privacy by not requiring access to their YouTube account.
