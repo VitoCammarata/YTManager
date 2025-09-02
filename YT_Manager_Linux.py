@@ -16,6 +16,7 @@ import json
 import yt_dlp
 from typing import Optional, Any
 from time import sleep
+import core
 
 # --- Constants and Configurations ---
 
@@ -108,40 +109,6 @@ def make_path(folder_name: str) -> str:
     """
     return os.path.join(folder_name, f".{os.path.basename(folder_name)}.json")
 
-def sanitize_folder_name(name: str) -> str:
-    """
-    Cleans a string to make it a valid folder name for any operating system.
-
-    Args:
-        name: The original string, typically a playlist title.
-
-    Returns:
-        A filesystem-safe string to be used as a directory name.
-    """
-    name = re.sub(r'[\\/*?:"<>|]', "_", name)
-    name = re.sub(r'[\x00-\x1f\x7f]', "", name)
-    name = re.sub(r'\s+', " ", name).strip()
-    name = name.strip('. ')
-    return name
-
-def sanitize_title(title: str) -> str:
-    """
-    Cleans a string to make it a valid file name.
-
-    Args:
-        title: The original string, typically a video title.
-
-    Returns:
-        A filesystem-safe string to be used as a file name.
-    """
-    title = re.sub(r"[\'\*\?\"<>]", "", title)
-    title = title.replace("[", "(").replace("]", ")")
-    title = title.replace("{", "(").replace("}", ")")
-    title = re.sub(r"[|\\\/]", "-", title)
-    title = re.sub(r"^[\'\*\?\"<>]+", "", title)
-    title = re.sub(r"[\'\*\?\"<>]+$", "", title)
-    return title
-
 def urls_aquisition(user_choice: str) -> list[str]:
     """
     Interactively prompts the user to enter one or more YouTube playlist URLs,
@@ -217,7 +184,7 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
 
                 original_filename = os.path.join(tmp_folder, downloaded_files[0])
                 title = entry.get('title', 'Unknown')
-                sanitized = sanitize_title(title)
+                sanitized = core.sanitize_title(title)
                 numbered_title = f"{idx+1} - {sanitized}"
                 final_filename = os.path.join(folder_name, f"{numbered_title}.mp3")
                 os.replace(original_filename, final_filename)
@@ -225,7 +192,7 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
                 prev_title = ordered_titles[-1] if ordered_titles else None
                 titles_map[title] = [
                     sanitized,
-                    sanitize_title(prev_title) if prev_title else None,
+                    core.sanitize_title(prev_title) if prev_title else None,
                     None
                 ]
                 ordered_titles.append(title)
@@ -236,7 +203,7 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
                     temp_map = titles_map.copy()
                     for i, t in enumerate(ordered_titles[:-1]):
                         next_title = ordered_titles[i+1]
-                        temp_map[t][2] = sanitize_title(next_title) if next_title else None
+                        temp_map[t][2] = core.sanitize_title(next_title) if next_title else None
                     json.dump(temp_map, f, ensure_ascii=False, indent=4)
                     
 
@@ -289,17 +256,17 @@ def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict,
         if info and info.get('entries'):
             for entry in info.get('entries', []):
                 original_title = entry.get('title', 'Unknown')
-                sanitized = sanitize_title(original_title)
+                sanitized = core.sanitize_title(original_title)
                 video_url = entry.get('url')
                 ordered_titles.append(original_title)
-                if sanitized not in [sanitize_title(t) for t in titles_map.keys()]:
+                if sanitized not in [core.sanitize_title(t) for t in titles_map.keys()]:
                     new_videos[original_title] = video_url
         
         # Rebuild the entire map from scratch to ensure the order is correct.
         for i, title in enumerate(ordered_titles):
-            sanitized = sanitize_title(title)
-            prev_title = sanitize_title(ordered_titles[i-1]) if i > 0 else None
-            next_title = sanitize_title(ordered_titles[i+1]) if i < len(ordered_titles)-1 else None
+            sanitized = core.sanitize_title(title)
+            prev_title = core.sanitize_title(ordered_titles[i-1]) if i > 0 else None
+            next_title = core.sanitize_title(ordered_titles[i+1]) if i < len(ordered_titles)-1 else None
             new_titles_map[title] = [sanitized, prev_title, next_title]
 
         # Overwrite the old JSON with the new, perfectly ordered map.
@@ -369,7 +336,7 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
     final_sanitized_titles = {v[0] for v in titles_map.values()}
     for f in os.listdir(folder_name):
         if f.endswith(".mp3"):
-            file_sanitized_title = sanitize_title(f.split(' - ', 1)[-1].rsplit('.mp3', 1)[0])
+            file_sanitized_title = core.sanitize_title(f.split(' - ', 1)[-1].rsplit('.mp3', 1)[0])
             if file_sanitized_title not in final_sanitized_titles:
                 try:
                     os.remove(os.path.join(folder_name, f))
@@ -430,7 +397,7 @@ if __name__ == "__main__":
                 with yt_dlp.YoutubeDL(config1) as ydl:
                     info = ydl.extract_info(url, download=False)
                     if info:
-                        folder_name = sanitize_folder_name(info['title'])
+                        folder_name = core.sanitize_folder_name(info['title'])
 
                 if os.path.isdir(folder_name):
                     print(f"\nThe folder '{folder_name}' already exists. Use the Update option to update it.", end="\n")
@@ -457,7 +424,7 @@ if __name__ == "__main__":
                 with yt_dlp.YoutubeDL(config1) as ydl:
                     info = ydl.extract_info(url, download=False)
                     if info:
-                        folder_name = sanitize_folder_name(info.get("title", "Unknown Playlist"))
+                        folder_name = core.sanitize_folder_name(info.get("title", "Unknown Playlist"))
 
                 if not os.path.isdir(folder_name):
                     print(f"\nFolder '{folder_name}' not found. Please use the Download option first.")
