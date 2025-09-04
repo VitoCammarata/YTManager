@@ -16,6 +16,32 @@ import yt_dlp
 from time import sleep
 import core
 from core import config1, URL_TYPE
+
+def ask_for_format() -> str:
+    formats_list = ["mp3", "m4a", "flac", "opus", "wav", "mp4", "mkv", "webm"]
+    os.system("clear")    
+
+    while True:
+        print("\nChose a format for the download:")
+        print("- mp3 (Audio, max compatibility)")
+        print("- m4a (Audio, modern & efficient)")
+        print("- flac (Audio, lossless - large files)")
+        print("- opus (Audio, ideal for speech - small files)")
+        print("- wav  (Audio, uncompressed - for editing)")
+        print("- mp4  (Video + Audio, max compatibility)")
+        print("- mkv  (Video + Audio, flexible format)")
+        print("- webm (Video + Audio, modern web format)")
+        
+        chosen_format = input("\nFormat: ").strip().lower()
+        if chosen_format not in formats_list:
+            print("\nInvalid format. Press 'Enter' continue...")
+            input()
+            os.system("clear")
+            continue
+        else:
+            os.system("clear")
+            print("Download...")
+            return chosen_format
     
 
 def urls_aquisition(user_choice: str) -> list[str]:
@@ -51,7 +77,8 @@ def urls_aquisition(user_choice: str) -> list[str]:
 
         user_input = input(f"Input: ").strip()
         if user_input.lower() == f"{key_words[0]}":
-            if user_input == "2":
+            if user_input == "update":
+                os.system("clear")
                 print(f"\n{key_words[1]}...")
             return local_playlist_url
         # Extracts the playlist ID and rebuilds a clean URL to standardize it.
@@ -64,33 +91,6 @@ def urls_aquisition(user_choice: str) -> list[str]:
 
 
 if __name__ == "__main__":
-    formats_list = ["mp3", "m4a", "flac", "opus", "wav", "mp4", "mkv", "webm"]
-
-    def ask_for_format() -> str:
-            os.system("clear")    
-
-            while True:
-                print("\nChose a format for the download:")
-                print("- mp3 (Audio, max compatibility)")
-                print("- m4a (Audio, modern & efficient)")
-                print("- flac (Audio, lossless - large files)")
-                print("- opus (Audio, ideal for speech - small files)")
-                print("- wav  (Audio, uncompressed - for editing)")
-                print("- mp4  (Video + Audio, max compatibility)")
-                print("- mkv  (Video + Audio, flexible format)")
-                print("- webm (Video + Audio, modern web format)")
-                
-                chosen_format = input("\nFormat: ").strip().lower()
-                if chosen_format not in formats_list:
-                    print("\nInvalid format. Press 'Enter' continue...")
-                    input()
-                    os.system("clear")
-                    continue
-                else:
-                    os.system("clear")
-                    print("Download...")
-                    return chosen_format
-
     current_state = "main_menu"
     os.system("clear")
 
@@ -117,6 +117,9 @@ if __name__ == "__main__":
         # --- PLAYLIST MANAGEMENT ---
         elif current_state == "playlist_menu":
             while True:
+                if user_choice == "3":
+                    break
+
                 os.system("clear")
                 print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
                 print("1 - Download\n2 - Update\n3 - Exit\n")
@@ -148,8 +151,9 @@ if __name__ == "__main__":
                             print(f" - {error}")
                     else:
                         print("\nDownload completed successfully for all playlists!")
+                        sleep(1)
 
-                    current_state = "exit"
+                    user_choice = "3"
 
                 # --- UPDATE PLAYLIST ---
                 elif user_choice == "2":
@@ -230,10 +234,9 @@ if __name__ == "__main__":
                     else:
                         print("\nUpdate completed successfully for all playlists!")
 
-                    current_state = "exit"
+                    user_choice = "3"
 
                 elif user_choice == "3":
-                    current_state = "exit"
                     break
 
                 else:
@@ -241,6 +244,8 @@ if __name__ == "__main__":
                     input()
                     os.system("clear")
                     continue
+
+            current_state = "exit"
 
         # --- VIDEOS MANAGEMENT ---
         elif current_state == "videos_download":

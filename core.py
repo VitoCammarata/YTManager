@@ -133,7 +133,6 @@ def get_format_options(format_choice: str) -> dict:
             "format": "bestaudio/best",
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "wav"},
-                {"key": "EmbedThumbnail"},
             ]
         }
 
@@ -161,7 +160,6 @@ def get_format_options(format_choice: str) -> dict:
             "format": "bestvideo[ext=webm]+bestaudio[ext=webm]/best",
             "merge_output_format": "webm",
             "postprocessors": [
-                {"key": "EmbedThumbnail"},
                 {"key": "FFmpegMetadata"},
             ]
         }
@@ -353,8 +351,6 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
             else:
                 break
 
-    print(format)
-
     if not format:
         errors.append(f"Nessun file multimediale trovato nella cartella '{folder_name}'. Impossibile eseguire l'update. ")
         return errors
@@ -365,7 +361,7 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
         tmp_folder = os.path.join(folder_name, ".tmp")
         os.makedirs(tmp_folder, exist_ok=True)
         
-        ydl_opts = make_config(tmp_folder)
+        ydl_opts = make_config(tmp_folder, format)
 
         for title, url in new_videos.items():
             try:
