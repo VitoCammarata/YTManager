@@ -86,35 +86,109 @@ def get_ffmpeg_path() -> Optional[str]:
     
     return None
 
-def make_config(tmp_folder: str) -> dict:
+def get_format_options(format_choice: str) -> dict:
     """
-    Creates the main yt-dlp configuration for downloading and processing a single video.
-
-    Args:
-        tmp_folder: The temporary directory where the raw download will be stored.
-
-    Returns:
-        A dictionary containing the complete configuration for yt-dlp.
+    Returns a dictionary of yt-dlp options based on the format choice. Handles audio, video, metadata, and thumbnails.
     """
-    config = {
-        "format": "bestaudio/best",
+    format_choice = format_choice.lower().strip()
+
+    if format_choice == 'mp3':
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"},
+                {"key": "EmbedThumbnail"},
+            ]
+        }
+
+    elif format_choice == 'm4a':
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"},
+                {"key": "EmbedThumbnail"},
+            ]
+        }
+
+    elif format_choice == 'flac':
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "flac"},
+                {"key": "EmbedThumbnail"},
+            ]
+        }
+
+    elif format_choice == 'opus':
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "opus"},
+                {"key": "EmbedThumbnail"},
+            ]
+        }
+
+    elif format_choice == 'wav':
+        return {
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {"key": "FFmpegExtractAudio", "preferredcodec": "wav"},
+                {"key": "EmbedThumbnail"},
+            ]
+        }
+
+    elif format_choice == 'mp4':
+        return {
+            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "postprocessors": [
+                {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"},
+            ]
+        }
+
+    elif format_choice == 'mkv':
+        return {
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mkv",
+            "postprocessors": [
+                {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"},
+            ]
+        }
+
+    elif format_choice == 'webm':
+        return {
+            "format": "bestvideo[ext=webm]+bestaudio[ext=webm]/best",
+            "merge_output_format": "webm",
+            "postprocessors": [
+                {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"},
+            ]
+        }
+        
+    else:
+        print(f"Format '{format_choice}' not recognized. Using 'mp3' as default.")
+        return get_format_options('mp3')
+
+def make_config(tmp_folder: str, format: str = "mp3") -> dict:
+
+    format_opts = get_format_options(format)
+
+    base_config = {
         "outtmpl": os.path.join(tmp_folder, "%(title)s.%(ext)s"),
         "add_metadata": True,
         "writethumbnail": True,
-        "postprocessors": [
-            {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"},
-            {"key": "EmbedThumbnail"},
-        ],
         "quiet": True,
         "ignoreerrors": True
     }
+   
+    final_config = {**base_config, **format_opts}
 
-    # If running as a bundled app, tell yt-dlp where to find ffmpeg.
     ffmpeg_location = get_ffmpeg_path()
     if ffmpeg_location:
-        config['ffmpeg_location'] = ffmpeg_location
-
-    return config
+        final_config['ffmpeg_location'] = ffmpeg_location
+   
+    return final_config
 
 def make_path(folder_name: str) -> str:
     """
@@ -128,7 +202,7 @@ def make_path(folder_name: str) -> str:
     """
     return os.path.join(folder_name, f".{os.path.basename(folder_name)}.json")
 
-def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, str]]:
+def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") -> list[tuple[str, str]]:
     """
     Downloads a new playlist using a resilient, one-by-one process.
     It saves the state to a JSON file after each successful download, allowing
@@ -151,18 +225,18 @@ def download_playlist(playlist_url: str, folder_name: str) -> list[tuple[str, st
     info = basic_info(playlist_url)
 
     for idx, entry in enumerate(info.get('entries', [])): 
-        with yt_dlp.YoutubeDL(make_config(tmp_folder)) as ydl:
+        with yt_dlp.YoutubeDL(make_config(tmp_folder, format=format)) as ydl:
             try:
                 ydl.download([entry.get('url')])
 
-                downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith('.mp3')]
-                if not downloaded_files: raise FileNotFoundError("MP3 not found in temp folder")
+                downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
+                if not downloaded_files: raise FileNotFoundError(f"{format.upper()} not found in temp folder")
 
                 original_filename = os.path.join(tmp_folder, downloaded_files[0])
                 title = entry.get('title', 'Unknown')
                 sanitized = sanitize_title(title)
                 numbered_title = f"{idx+1} - {sanitized}"
-                final_filename = os.path.join(folder_name, f"{numbered_title}.mp3")
+                final_filename = os.path.join(folder_name, f"{numbered_title}.{format}")
                 os.replace(original_filename, final_filename)
 
                 prev_title = ordered_titles[-1] if ordered_titles else None
@@ -268,6 +342,24 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
         A list of errors that occurred during the update.
     """
     errors = []
+
+    # --- Get back file's format ---
+    for f in os.listdir(folder_name):
+        if os.path.isfile(os.path.join(folder_name, f)):
+            format = os.path.splitext(f)[1].replace('.', '')
+
+            if format.endswith("json"):
+                continue
+            else:
+                break
+
+    print(format)
+
+    if not format:
+        errors.append(f"Nessun file multimediale trovato nella cartella '{folder_name}'. Impossibile eseguire l'update. ")
+        return errors
+
+
     # --- Phase 1: Download new videos (if any) ---
     if new_videos:
         tmp_folder = os.path.join(folder_name, ".tmp")
@@ -279,12 +371,12 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.extract_info(url, download=True)
-                    downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith('.mp3')]
-                    if not downloaded_files: raise FileNotFoundError("MP3 not found")
+                    downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
+                    if not downloaded_files: raise FileNotFoundError(f"{format.upper()} not found")
 
                     original_filename = os.path.join(tmp_folder, downloaded_files[0])
                     sanitized = titles_map[title][0]
-                    temp_filename = os.path.join(folder_name, f"{sanitized}.mp3")
+                    temp_filename = os.path.join(folder_name, f"{sanitized}.{format}")
                     os.replace(original_filename, temp_filename)
             except Exception as e:
                 errors.append((f"Error with '{title}'", str(e)))
@@ -299,10 +391,10 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
         sanitized = titles_map[original_title][0]
         if sanitized:
             try:
-                current_files = [f for f in os.listdir(folder_name) if f.endswith('.mp3') and sanitized in f]
+                current_files = [f for f in os.listdir(folder_name) if f.endswith(f'.{format}') and sanitized in f]
                 if current_files:
                     old_name = os.path.join(folder_name, current_files[0])
-                    new_name = os.path.join(folder_name, f"{idx+1} - {sanitized}.mp3")
+                    new_name = os.path.join(folder_name, f"{idx+1} - {sanitized}.{format}")
                     if old_name != new_name:
                         os.replace(old_name, new_name)
             except Exception as e:
@@ -311,8 +403,8 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
     # --- Phase 3: Clean up obsolete files ---
     final_sanitized_titles = {v[0] for v in titles_map.values()}
     for f in os.listdir(folder_name):
-        if f.endswith(".mp3"):
-            file_sanitized_title = sanitize_title(f.split(' - ', 1)[-1].rsplit('.mp3', 1)[0])
+        if f.endswith(f".{format}"):
+            file_sanitized_title = sanitize_title(f.split(' - ', 1)[-1].rsplit(f'.{format}', 1)[0])
             if file_sanitized_title not in final_sanitized_titles:
                 try:
                     os.remove(os.path.join(folder_name, f))
