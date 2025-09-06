@@ -6,7 +6,6 @@
 <!-- Ti consiglio di aggiungere qui uno screenshot o una GIF del programma in azione! -->
 <!-- Esempio: <img src="screenshot.gif" width="700"> -->
 
----
 
 [English Version](#english) | [Versione Italiana](#italiano)
 
@@ -17,30 +16,46 @@
 
 ### Descrizione
 
-Un'applicazione cross-platform per scaricare e sincronizzare le tue playlist di YouTube in file MP3 locali in modo semplice e robusto.
+Un'applicazione cross-platform per scaricare e sincronizzare i tuoi video e le tue playlist di YouTube in file locali, in modo semplice e robusto.
 
-YTManager ti permette di mantenere una copia locale delle tue playlist preferite. Offre due funzionalità principali:
-1.  **Download:** Scarica un'intera playlist, convertendo ogni video in un file MP3 di alta qualità e **includendo automaticamente la miniatura del video come copertina dell'album (album art)**. Il processo è resiliente e può essere ripreso in caso di interruzioni.
-2.  **Update:** Sincronizza una cartella già scaricata con la versione online della playlist. Aggiunge i nuovi video, rimuove quelli eliminati e riordina i file per rispecchiare l'ordine attuale.
+YTManager ti permette di mantenere una copia locale dei tuoi contenuti preferiti, offrendo il pieno controllo sul formato e sulla gestione della tua libreria.
 
-**⚠️ Nota Importante:** Lo script funziona esclusivamente con **playlist pubbliche o non in elenco**. Le playlist private non sono supportate perché l'applicazione non implementa un sistema di login, garantendo così la privacy dell'utente senza richiedere l'accesso all'account YouTube.
+### Funzionalità Principali
+
+*   📥 **Gestione Completa delle Playlist:**
+    *   **Download:** Scarica un'intera playlist, convertendo ogni video nel formato scelto.
+    *   **Update:** Sincronizza una cartella già scaricata con la versione online. Aggiunge nuovi video, rimuove quelli eliminati e riordina i file per rispecchiare l'ordine attuale.
+
+*   🎬 **Download di Video Singoli:**
+    *   Non solo playlist! Puoi scaricare rapidamente uno o più video singoli inserendo i loro URL.
+
+*   🎧 **Ampia Scelta di Formati:**
+    *   Scegli il formato che preferisci. YTManager supporta sia formati **audio** (come `mp3`, `m4a`, `flac`) che **video** (come `mp4`, `mkv`).
+
+*   🖼️ **Copertine e Metadati Inclusi:**
+    *   Per i formati audio, la miniatura del video viene **automaticamente inclusa come copertina del file**, rendendo la tua libreria musicale più bella e organizzata.
+
+*   🛡️ **Sicuro e Robusto:**
+    *   Il processo di aggiornamento è protetto da un sistema di **backup automatico**. Se qualcosa va storto, la tua cartella viene ripristinata allo stato originale per non perdere alcun file.
+
+**⚠️ Nota Importante:** Lo script funziona esclusivamente con **playlist e video pubblici o non in elenco**. I contenuti privati non sono supportati perché l'applicazione non implementa un sistema di login, garantendo così la privacy dell'utente senza richiedere l'accesso all'account YouTube.
 
 ### Come si Usa
 
 1.  **Scarica l'ultima versione** dalla sezione [**Releases**](https://github.com/VitoCammarata/YTManager/releases) di questo repository.
 2.  Scegli il file adatto al tuo sistema operativo.
-3.  Metti l'eseguibile nella cartella dove vuoi conservare le tue playlist.
+3.  Metti l'eseguibile nella cartella dove vuoi conservare i tuoi download.
 4.  Esegui il programma e segui le istruzioni a schermo:
     *   **Su Windows:** Fai doppio click sul file `YTManager.exe`. Si aprirà automaticamente un terminale per interagire con il programma.
     *   **Su Linux:** Apri un terminale nella cartella in cui hai messo il file ed eseguilo con il comando `./YTManager`.
 
 ### Dietro le Quinte: File di Supporto
 
-Per garantire un funzionamento sicuro, YTManager crea alcuni file e cartelle di supporto.
+Per garantire un funzionamento sicuro, YTManager crea alcuni file e cartelle di supporto all'interno delle directory delle playlist.
 
--   **File di Stato (`.json`):** In ogni cartella viene creato un file di stato nascosto (es. `.NomePlaylist.json` su Linux, o `NomePlaylist.json` su Windows, reso nascosto dal sistema). Questo file è fondamentale per la sincronizzazione.
--   **Cartella Temporanea:** Durante il download, i file vengono processati in una cartella temporanea (`.tmp` su Linux, `tmp` su Windows), anch'essa nascosta. Viene eliminata automaticamente a processo concluso.
--   **Cartella di Backup:** Durante un "Update", viene creata una copia di sicurezza della playlist (`.bak` su Linux, `bak` su Windows). In caso di errori, i tuoi file vengono ripristinati da qui.
+-   **File di Stato (`.json`):** In ogni cartella playlist, viene creato un file di stato nascosto (es. `.NomePlaylist.json`). Questo file è fondamentale per la sincronizzazione. Su Windows, questo file potrebbe essere visibile durante le operazioni di download o update.
+-   **Cartella Temporanea (`.tmp`):** Durante il download, i file vengono processati in una cartella temporanea che viene eliminata automaticamente a processo concluso.
+-   **Cartella di Backup (`.bak`):** Durante un "Update", viene creata una copia di sicurezza della playlist. In caso di errori, i tuoi file vengono ripristinati da qui.
 
 **⚠️ Attenzione:** Per garantire il corretto funzionamento del programma, **non modificare o eliminare manualmente** questi file e cartelle.
 
@@ -63,43 +78,59 @@ Se vuoi contribuire o eseguire il codice sorgente:
 
 Questo progetto è in continua evoluzione! Ecco alcune delle funzionalità previste:
 -   Interfaccia Grafica (GUI) per un utilizzo ancora più semplice.
--   Scelta del formato di download (video MP4, altri formati audio).
--   File di configurazione per salvare playlist e impostazioni.
--   Download paralleli per aggiornare più playlist contemporaneamente.
+-   File di configurazione per salvare le impostazioni preferite.
+-   Download e aggiornamenti concorrenti per gestire più operazioni contemporaneamente.
 -   ...e altro ancora!
 
 Hai un'idea o hai trovato un bug? Apri una **[Issue](https://github.com/VitoCammarata/YTManager/issues)**! I suggerimenti sono sempre benvenuti.
 
 ---
+
 <a name="english"></a>
 ## 🇬🇧 YTManager (English Version)
 
 ### Description
 
-A cross-platform application to easily and robustly download and synchronize your YouTube playlists into local MP3 files.
+A cross-platform application for simply and robustly downloading and synchronizing your YouTube videos and playlists to local files.
 
-YTManager allows you to keep a local copy of your favorite playlists. It offers two main features:
-1.  **Download:** Downloads an entire playlist, converting each video into a high-quality MP3 file and **automatically embedding the video's thumbnail as the cover art (album art)**. The process is resilient and can be resumed if interrupted.
-2.  **Update:** Synchronizes an already downloaded folder with its online counterpart. It adds new videos, removes deleted ones, and reorders files to match the current playlist order.
+YTManager allows you to keep a local copy of your favorite content, offering full control over the format and management of your library.
 
-**⚠️ Important Note:** The script works exclusively with **public or unlisted playlists**. Private playlists are not supported because the application does not implement a login feature, thus ensuring user privacy by not requiring access to their YouTube account.
+### Key Features
+
+*   📥 **Complete Playlist Management:**
+    *   **Download:** Download an entire playlist, converting each video to your chosen format.
+    *   **Update:** Synchronize a previously downloaded folder with its online version. It adds new videos, removes deleted ones, and reorders files to match the current playlist order.
+
+*   🎬 **Single Video Downloads:**
+    *   Not just playlists! You can quickly download one or more individual videos by providing their URLs.
+
+*   🎧 **Wide Choice of Formats:**
+    *   Choose the format you prefer. YTManager supports both **audio** formats (like `mp3`, `m4a`, `flac`) and **video** formats (like `mp4`, `mkv`).
+
+*   🖼️ **Cover Art and Metadata Included:**
+    *   For audio formats, the video's thumbnail is **automatically embedded as the file's cover art**, making your music library look beautiful and organized.
+
+*   🛡️ **Safe and Robust:**
+    *   The update process is protected by an **automatic backup system**. If anything goes wrong, your folder is restored to its original state, so you never lose a file.
+
+**⚠️ Important Note:** The application works exclusively with **public or unlisted playlists and videos**. Private content is not supported because the application does not implement a login system, thus guaranteeing user privacy by not requiring access to your YouTube account.
 
 ### How to Use
 
 1.  **Download the latest version** from the [**Releases**](https://github.com/VitoCammarata/YTManager/releases) section of this repository.
-2.  Choose the file appropriate for your operating system.
-3.  Place the executable in the folder where you want to store your playlists.
+2.  Choose the appropriate file for your operating system.
+3.  Place the executable in the folder where you want to store your downloads.
 4.  Run the program and follow the on-screen instructions:
-    *   **On Windows:** Double-click the `YTManager.exe` file. A terminal window will open automatically for you to interact with the program.
+    *   **On Windows:** Double-click the `YTManager.exe` file. A terminal will automatically open to interact with the program.
     *   **On Linux:** Open a terminal in the folder where you placed the file and run it with the command `./YTManager`.
 
 ### Behind the Scenes: Support Files
 
-To ensure safe operation, YTManager creates a few support files and folders.
+To ensure safe operation, YTManager creates a few support files and folders within your playlist directories.
 
--   **State File (`.json`):** A hidden state file is created in each folder (e.g., `.PlaylistName.json` on Linux, or `PlaylistName.json` on Windows, made hidden by the system). This file is crucial for synchronization.
--   **Temporary Folder:** During downloads, files are processed in a temporary folder (`.tmp` on Linux, `tmp` on Windows), which is also hidden. It is automatically deleted when the process is complete.
--   **Backup Folder:** During an "Update", a backup copy of the playlist is created (`.bak` on Linux, `bak` on Windows). In case of an error, your files are restored from it.
+-   **State File (`.json`):** A hidden state file (e.g., `.PlaylistName.json`) is created in each playlist folder. This file is essential for synchronization. On Windows, this file may be visible during download or update operations.
+-   **Temporary Folder (`.tmp`):** During the download process, files are processed in a temporary folder, which is automatically deleted upon completion.
+-   **Backup Folder (`.bak`):** During an "Update," a backup copy of the playlist is created. In case of an error, your files are restored from here.
 
 **⚠️ Warning:** To ensure the program works correctly, **do not manually modify or delete** these files and folders.
 
@@ -118,13 +149,14 @@ If you want to contribute or run the source code:
     pip install -r requirements.txt
     ```
     
-### Future Roadmap & Contributions
+### Future Roadmap and Contributions
 
 This project is constantly evolving! Here are some of the planned features:
--   A Graphical User Interface (GUI) for an even more user-friendly experience.
--   Format selection (MP4 videos, other audio formats).
--   A configuration file to save playlists and preferred settings.
--   Parallel downloads to speed up updating multiple playlists.
--   ...and much more!
+-   Graphical User Interface (GUI) for even easier use.
+-   Configuration file to save preferred settings.
+-   Concurrent downloads and updates to handle multiple operations at once.
+-   ...and more!
 
-Have an idea or found a bug? Please open an **[Issue](https://github.com/VitoCammarata/YTManager/issues)**! Suggestions are always welcome.
+Have an idea or found a bug? Open an **[Issue](https://github.com/VitoCammarata/YTManager/issues)**! Suggestions are always welcome.
+
+---
