@@ -158,5 +158,3 @@ This project is constantly evolving! Here are some of the planned features:
 -   ...and more!
 
 Have an idea or found a bug? Open an **[Issue](https://github.com/VitoCammarata/YTManager/issues)**! Suggestions are always welcome.
-
----
