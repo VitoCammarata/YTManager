@@ -80,7 +80,12 @@ def get_ffmpeg_path() -> Optional[str]:
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS #type: ignore
         
-        ffmpeg_executable = os.path.join(base_path, 'dependencies', "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+        ffmpeg_executable = os.path.join(
+            base_path,
+            'dependencies',
+            'windows' if os.name == 'nt' else 'linux',
+            'ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
+        )
         
         if os.path.exists(ffmpeg_executable):
             return ffmpeg_executable
