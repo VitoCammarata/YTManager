@@ -80,7 +80,7 @@ def get_ffmpeg_path() -> Optional[str]:
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS #type: ignore
         
-        ffmpeg_executable = os.path.join(base_path, 'dependencies', "ffmpeg")
+        ffmpeg_executable = os.path.join(base_path, 'dependencies', "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
         
         if os.path.exists(ffmpeg_executable):
             return ffmpeg_executable
@@ -270,6 +270,8 @@ def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") 
     # Temporary folder for yt-dlp downloads to avoid partial files in target
     tmp_folder = os.path.join(folder_name, ".tmp")
     os.makedirs(tmp_folder, exist_ok=True)
+    if os.name == "nt":
+        os.system(f'attrib +h "{tmp_folder}"')
 
     titles_map = {}
     ordered_titles = []
@@ -320,12 +322,14 @@ def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") 
                         next_title = ordered_titles[i+1]
                         temp_map[t][2] = sanitize_title(next_title) if next_title else None
                     json.dump(temp_map, f, ensure_ascii=False, indent=4)
-                    
-
+                 
             except Exception as e:
                 # Record the failure for this entry, but continue with the rest
                 errors.append((entry.get('title', 'Unknown'), str(e)))
                 continue
+
+    if os.name == "nt":
+        os.system(f'attrib +h "{json_filename}"')
 
     # Attempt to remove temporary folder and report errors if unable
     try:
@@ -358,6 +362,8 @@ def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict,
 
     try:
         json_filename = make_path(folder_name)
+        if os.name == "nt":
+            os.system(f'attrib -h "{json_filename}"')
         try:
             if os.path.exists(json_filename):
                 # Load existing JSON state to know which videos are already present
@@ -397,6 +403,9 @@ def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict,
         # Overwrite the old JSON with the new, perfectly ordered map for future updates
         with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(new_titles_map, f, ensure_ascii=False, indent=4)
+
+        if os.name == "nt":
+            os.system(f'attrib +h "{json_filename}"')
 
     except Exception as e:
         errors.append(("Sync Planning", f"General error in get_missing_videos: {e}"))
@@ -440,6 +449,8 @@ def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optio
     if new_videos:
         tmp_folder = os.path.join(folder_name, ".tmp")
         os.makedirs(tmp_folder, exist_ok=True)
+        if os.name == "nt":
+            os.system(f'attrib +h "{tmp_folder}"')
         
         ydl_opts = make_config(tmp_folder, format)
 
@@ -522,6 +533,8 @@ def folder_backup(folder_name: str) -> tuple[Optional[str], Optional[str]]:
     try:
         # Copy the folder tree to the backup location (excluding .bak itself)
         shutil.copytree(folder_name, backup_folder, ignore=shutil.ignore_patterns(".bak"))
+        if os.name == "nt":
+            os.system(f'attrib +h "{backup_folder}"')
         return backup_folder, None
     except Exception as e:
         return None, f"Failed to create backup for '{folder_name}': {e}"

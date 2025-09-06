@@ -18,6 +18,10 @@ import core
 from core import config1
 from core import PLAYLIST_URL_TYPE, VIDEO_URL_TYPE1, VIDEO_URL_TYPE2
 
+def clear_screen():
+    os.system("cls") if os.name == "nt" else os.system("clear")    
+
+
 def ask_for_format() -> str:
     """
     Prompt the user to choose a download format.
@@ -30,7 +34,7 @@ def ask_for_format() -> str:
         repeats until a supported format is entered.
     """
     formats_list = ["mp3", "m4a", "flac", "opus", "wav", "mp4", "mkv", "webm"]
-    os.system("clear")    
+    clear_screen()    
 
     while True:
         print("\nChose a format for the download:")
@@ -47,10 +51,10 @@ def ask_for_format() -> str:
         if chosen_format not in formats_list:
             print("\nInvalid format. Press 'Enter' continue...")
             input()
-            os.system("clear")
+            clear_screen()
             continue
         else:
-            os.system("clear")
+            clear_screen()
             print("Download...")
             return chosen_format
     
@@ -72,7 +76,7 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         else:
             print("\nThis URL has already been added. Press Enter to continue...")
             input()
-        os.system("clear")
+        clear_screen()
 
     local_playlist_url = []
     key_words = ["download", "Download"] if user_choice == "1" else ["update", "Update"]
@@ -89,7 +93,7 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         user_input = input(f"Input: ").strip()
         if user_input.lower() == f"{key_words[0]}":
             if user_input == "update":
-                os.system("clear")
+                clear_screen()
                 print(f"\n{key_words[1]}...")
             return local_playlist_url
         
@@ -100,7 +104,7 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         else:
             print("\nInvalid input. Press Enter to continue...")
             input()
-            os.system("clear")
+            clear_screen()
 
 def video_urls_aquisition() -> list[str]:
     """
@@ -122,7 +126,7 @@ def video_urls_aquisition() -> list[str]:
         else:
             print("\nThis URL has already been added. Press Enter to continue...")
             input()
-        os.system("clear")
+        clear_screen()
 
     local_videos_url = []
 
@@ -137,7 +141,7 @@ def video_urls_aquisition() -> list[str]:
 
         user_input = input(f"Input: ").strip()
         if user_input.lower() == "download":
-            os.system("clear")
+            clear_screen()
             print("\nDownload...")
             return local_videos_url
     
@@ -151,19 +155,19 @@ def video_urls_aquisition() -> list[str]:
         else:
             print("\nInvalid input. Press Enter to continue...")
             input()
-            os.system("clear")
+            clear_screen()
         
 
 if __name__ == "__main__":
     current_state = "main_menu"
-    os.system("clear")
+    clear_screen()
 
     while True:
         columns = shutil.get_terminal_size().columns
 
         # --- MAIN MENU --- 
         if current_state == "main_menu":
-            os.system("clear")
+            clear_screen()
             print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
             print("1 - Manage Playlists\n2 - Download Videos\n3 - Exit\n")
             user_choice = input("Select an option: ")
@@ -177,19 +181,19 @@ if __name__ == "__main__":
             else:
                 print("\nInvalid option. Please select 1, 2, or 3. Press 'Enter' to continue...")
                 input()
-                os.system("clear")
+                clear_screen()
 
         # --- PLAYLIST MANAGEMENT ---
         elif current_state == "playlist_menu":
             while True:
-                os.system("clear")
+                clear_screen()
                 print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
                 print("1 - Download\n2 - Update\n3 - Back to main menu\n4 - Exit\n")
                 user_choice = input("Select an option: ")
 
                 # --- DOWNLOAD PLAYLIST ---
                 if user_choice == "1":
-                    os.system("clear")
+                    clear_screen()
                     playlist_url = playlist_urls_aquisition(user_choice)
                     chosen_format = ask_for_format()
                     errors = []
@@ -226,7 +230,7 @@ if __name__ == "__main__":
 
                 # --- UPDATE PLAYLIST ---
                 elif user_choice == "2":
-                    os.system("clear")
+                    clear_screen()
                     playlist_url = playlist_urls_aquisition(user_choice)
                     errors = []
 
@@ -275,7 +279,7 @@ if __name__ == "__main__":
                             
                             # Try to restore from the previously created backup if available
                             if backup_path and os.path.isdir(backup_path):
-                                os.system("clear")
+                                clear_screen()
                                 print("Update failed. Restoring from backup...")
                                 sleep(2)
                                 try:
@@ -329,12 +333,12 @@ if __name__ == "__main__":
                 else:
                     print("\nInvalid option. Please select 1 or 2. Press 'Enter' to continue...")
                     input()
-                    os.system("clear")
+                    clear_screen()
                     continue
 
         # --- VIDEOS MANAGEMENT ---
         elif current_state == "videos_download":
-            os.system("clear")
+            clear_screen()
             video_url = video_urls_aquisition()
             chosen_format = ask_for_format()
             errors = []
