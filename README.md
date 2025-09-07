@@ -12,7 +12,7 @@
 ---
 
 <a name="italiano"></a>
-## 🇮🇹 YTManager (Versione Italiana)
+## 🇮🇹 YTManager
 
 ### Descrizione
 
@@ -91,7 +91,7 @@ Hai un'idea o hai trovato un bug? Apri una **[Issue](https://github.com/VitoCamm
 ---
 
 <a name="english"></a>
-## 🇬🇧 YTManager (English Version)
+## 🇬🇧 YTManager
 
 ### Description
 
