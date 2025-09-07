@@ -49,15 +49,19 @@ YTManager ti permette di mantenere una copia locale dei tuoi contenuti preferiti
     *   **Su Windows:** Fai doppio click sul file `YTManager.exe`. Si aprirà automaticamente un terminale per interagire con il programma.
     *   **Su Linux:** Apri un terminale nella cartella in cui hai messo il file ed eseguilo con il comando `./YTManager`.
 
-### Dietro le Quinte: File di Supporto
+### Dietro le Quinte
 
 Per garantire un funzionamento sicuro, YTManager crea alcuni file e cartelle di supporto all'interno delle directory delle playlist.
 
--   **File di Stato (`.json`):** In ogni cartella playlist, viene creato un file di stato nascosto (es. `.NomePlaylist.json`). Questo file è fondamentale per la sincronizzazione. Su Windows, questo file potrebbe essere visibile durante le operazioni di download o update.
--   **Cartella Temporanea (`.tmp`):** Durante il download, i file vengono processati in una cartella temporanea che viene eliminata automaticamente a processo concluso.
+-   **File di Stato (`.json`):** In ogni cartella playlist, viene creato un file di stato nascosto (es. `.NomePlaylist.json`). Questo file è fondamentale per la sincronizzazione. Su Windows, questo file potrebbe essere visibile di default.
+
+-   **Cartella Temporanea (`.tmp`):** Durante il download di una playlist, i file vengono processati in una cartella temporanea che viene eliminata automaticamente a processo concluso.
+
+-   **File Intermedi di Download:** Durante il processo di download, vedrai comparire nella cartella diversi file temporanei (es. flussi video `.mp4`, audio `.m4a`, o la copertina `.webp`). **Questi file sono essenziali per creare il file finale.**
+
 -   **Cartella di Backup (`.bak`):** Durante un "Update", viene creata una copia di sicurezza della playlist. In caso di errori, i tuoi file vengono ripristinati da qui.
 
-**⚠️ Attenzione:** Per garantire il corretto funzionamento del programma, **non modificare o eliminare manualmente** questi file e cartelle.
+**⚠️ Attenzione:** Per garantire il corretto funzionamento del programma e non corrompere i download, **non modificare o eliminare manualmente** nessuno di questi file e cartelle. **Attendi sempre che il programma comunichi il completamento dell'operazione.**
 
 ### Per Sviluppatori
 
@@ -124,15 +128,19 @@ YTManager allows you to keep a local copy of your favorite content, offering ful
     *   **On Windows:** Double-click the `YTManager.exe` file. A terminal will automatically open to interact with the program.
     *   **On Linux:** Open a terminal in the folder where you placed the file and run it with the command `./YTManager`.
 
-### Behind the Scenes: Support Files
+### Behind the Scenes
 
-To ensure safe operation, YTManager creates a few support files and folders within your playlist directories.
+To ensure safe operation, YTManager creates several support files and folders within your playlist directories.
 
--   **State File (`.json`):** A hidden state file (e.g., `.PlaylistName.json`) is created in each playlist folder. This file is essential for synchronization. On Windows, this file may be visible during download or update operations.
--   **Temporary Folder (`.tmp`):** During the download process, files are processed in a temporary folder, which is automatically deleted upon completion.
--   **Backup Folder (`.bak`):** During an "Update," a backup copy of the playlist is created. In case of an error, your files are restored from here.
+-   **State File (`.json`):** In each playlist folder, a hidden state file (e.g., `.PlaylistName.json`) is created. This file is fundamental for synchronization. On Windows, this file might be visible by default.
 
-**⚠️ Warning:** To ensure the program works correctly, **do not manually modify or delete** these files and folders.
+-   **Temporary Folder (`.tmp`):** During a playlist download, files are processed in a temporary folder which is automatically deleted once the process is complete.
+
+-   **Intermediate Download Files:** During the download process, you will see various temporary files (e.g., video streams `.mp4`, audio `.m4a`, or cover art `.webp`) appear in the folder. **These files are essential for creating the final output file.**
+
+-   **Backup Folder (`.bak`):** During an "Update," a backup copy of the playlist is created. In case of errors, your files are restored from here.
+
+**⚠️ Warning:** To ensure the program works correctly and to avoid corrupting downloads, **do not manually modify or delete** any of these files or folders. **Always wait for the program to confirm the completion of the operation.**
 
 ### For Developers
 
