@@ -13,14 +13,14 @@ track for the correct order of the tracks.
 import os
 import shutil
 import yt_dlp
+from pathvalidate import sanitize_filename
 from time import sleep
 import core
-from core import config1
+from core import yt_metadata_config
 from core import PLAYLIST_URL_TYPE, VIDEO_URL_TYPE1, VIDEO_URL_TYPE2
 
 def clear_screen():
     os.system("cls") if os.name == "nt" else os.system("clear")    
-
 
 def ask_for_format() -> str:
     """
@@ -200,11 +200,12 @@ if __name__ == "__main__":
 
                     for url in playlist_url:
                         # Fetch playlist metadata (title) quickly using config1
-                        with yt_dlp.YoutubeDL(config1) as ydl:
+                        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
                             info = ydl.extract_info(url, download=False)
                             if info:
-                                folder_name = core.sanitize_folder_name(info['title'])
-
+                                playlist_title = info.get('title', 'Unknown Playlist')
+                                folder_name = sanitize_filename(playlist_title)
+                
                         # If the folder already exists, suggest to use Update to avoid duplication
                         if os.path.isdir(folder_name):
                             print(f"\nThe folder '{folder_name}' already exists. Use the Update option to update it.", end="\n")
@@ -214,7 +215,7 @@ if __name__ == "__main__":
                         # Create destination folder and start downloading playlist entries
                         os.makedirs(folder_name, exist_ok=True)
                         # Delegate the resilient per-entry download to core.download_playlist
-                        errors.extend(core.download_playlist(url, folder_name, format=chosen_format))
+                        errors.extend(core.download_playlist(url, folder_name, playlist_title, format=chosen_format))
 
                     # Report download errors (if any)
                     if errors:
@@ -235,11 +236,14 @@ if __name__ == "__main__":
                     errors = []
 
                     for url in playlist_url:
-                        # Get playlist metadata to derive local folder name
-                        with yt_dlp.YoutubeDL(config1) as ydl:
-                            info = ydl.extract_info(url, download=False)
-                            if info:
-                                folder_name = core.sanitize_folder_name(info.get("title", "Unknown Playlist"))
+                        online_info = core.fetch_online_playlist_info(url)
+                        if not online_info:
+                            errors.append(("Info Error", f"Impossibile ottenere informazioni per l'URL: {url}"))
+                            continue
+
+                        playlist_title = online_info['title']
+                        online_videos = online_info['videos']
+                        folder_name = sanitize_filename(playlist_title)
 
                         # If local folder doesn't exist, cannot update: ask user to download first
                         if not os.path.isdir(folder_name):
@@ -247,68 +251,22 @@ if __name__ == "__main__":
                             sleep(1.5)
                             continue
                         
-                        backup_path = None 
                         try:
-                            # Clean up any residual temp folder to ensure a clean state before backup
-                            tmp_folder_path = os.path.join(folder_name, ".tmp")
-                            if os.path.isdir(tmp_folder_path):
-                                shutil.rmtree(tmp_folder_path)
+                            errors.extend(core.cleanup_deleted_videos(online_videos, playlist_title, folder_name))
 
-                            # Create a backup copy of the folder so we can rollback on failure
-                            backup_path, backup_error = core.folder_backup(folder_name)
-                            if backup_error:
-                                # If backup failed, skip updating this playlist and record the error
-                                errors.append(("Backup Failed", backup_error))
-                                continue
-                            
-                            # Determine missing videos and build the final titles map
-                            new_videos, titles_map, get_errors = core.get_missing_videos(url, folder_name)
-                            errors.extend(get_errors)
-                            
-                            # Apply the update plan (downloads, renames, cleanup)
-                            update_errors = core.update_playlist(new_videos, titles_map, folder_name)
-                            errors.extend(update_errors)
-                            
-                            # If any non-critical errors were returned, treat as failure and rollback
-                            if get_errors or update_errors:
-                                raise Exception("Update process reported non-critical errors, initiating rollback.")
+                            errors.extend(core.reorder_local_videos(online_videos, playlist_title, folder_name))
+
+                            media_format = core.detect_format(folder_name)
+                            if media_format:
+                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, media_format))
+                            else:
+                                media_format = ask_for_format()
+                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, chosen_format))
+
 
                         except Exception as e:
                             # Record the high-level failure for reporting
                             errors.append(("UPDATE FAILED", f"A critical error occurred: {e}"))
-                            
-                            # Try to restore from the previously created backup if available
-                            if backup_path and os.path.isdir(backup_path):
-                                clear_screen()
-                                print("Update failed. Restoring from backup...")
-                                sleep(2)
-                                try:
-                                    # Move backup into a temporary name then replace the broken folder atomically
-                                    temp_backup_path = f".{folder_name}.tmp.bak"
-                                    if os.path.exists(temp_backup_path):
-                                        shutil.rmtree(temp_backup_path)
-                                    shutil.move(backup_path, temp_backup_path)
-
-                                    shutil.rmtree(folder_name)
-                                    os.rename(temp_backup_path, folder_name)
-                                    
-                                    print("Restore successful.")
-                                except Exception as restore_e:
-                                    # If restore fails, append a critical error for manual intervention
-                                    errors.append(("CRITICAL RESTORE FAILED", str(restore_e)))
-                                    print(f"!!! CRITICAL ERROR: Could not restore from backup for '{folder_name}'. Please check the folder manually. !!!")
-                            else:
-                                # No backup available to restore from
-                                print("Update failed, and no backup was available to restore from.")
-                        
-                        finally:
-                            # If backup folder still exists (update succeeded or partially succeeded),
-                            # attempt to remove it to avoid clutter; record errors if cleanup fails.
-                            if backup_path and os.path.isdir(backup_path):
-                                try:
-                                    shutil.rmtree(backup_path)
-                                except Exception as clean_e:
-                                    errors.append(("Backup Cleanup Failed", str(clean_e)))
 
                     # Report update errors (if any)
                     if errors:

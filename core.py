@@ -1,53 +1,44 @@
-import re, os, sys, shutil, json
+import os, sys, shutil, json
 import yt_dlp
 from typing import Optional, Any
+from pathvalidate import sanitize_filename
+import appdirs
 
 # --- Constants and Configurations ---
 
 # yt-dlp configuration for fetching playlist metadata quickly
-config1 = {
+yt_metadata_config = {
     "extract_flat": True,
     "quiet": True,
     "noplaylistunavailablevideos": True
 }
 PLAYLIST_URL_TYPE = "https://www.youtube.com/playlist?list="
-
 VIDEO_URL_TYPE1 = "https://www.youtube.com/watch?v="
 VIDEO_URL_TYPE2 = "https://youtu.be/"
+APP_NAME = "YouTubePlaylistManager"
 
-def sanitize_folder_name(name: str) -> str:
-    """
-    Make a string safe to use as a folder name across filesystems.
+def get_app_data_dir() -> str:
+    data_dir = appdirs.user_data_dir(appname=APP_NAME)
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
 
-    Args:
-        name: Original string (typically a playlist title).
+def get_playlist_data_dir(playlist_title: str) -> str:
+    sanitize_title = sanitize_filename(playlist_title)
+    playlist_dir = os.path.join(get_app_data_dir(), sanitize_title)
+    os.makedirs(playlist_dir, exist_ok=True)
+    return playlist_dir
 
-    Returns:
-        A sanitized string suitable for use as a directory name.
-    """
-    name = re.sub(r'[\\/*?:"<>|]', "_", name)       # Replace common illegal filename characters with underscore
-    name = re.sub(r'[\x00-\x1f\x7f]', "", name)     # Remove control characters
-    name = re.sub(r'\s+', " ", name).strip()        # Normalize whitespace and trim edges
-    name = name.strip('. ')                         # Avoid trailing dots or spaces which are problematic on some systems    
-    return name
+def get_playlist_state_path(playlist_title: str) -> str:
+    playlist_dir = get_playlist_data_dir(playlist_title)
+    return os.path.join(playlist_dir, "state.json")
 
-def sanitize_title(title: str) -> str:
-    """
-    Make a string safe to use as a filename.
-
-    Args:
-        title: Original string (typically a video title).
-
-    Returns:
-        A sanitized string suitable for use as a file name.
-    """
-    title = re.sub(r"[\'\*\?\"<>]", "", title)              # Remove problematic characters and normalize bracket
-    title = title.replace("[", "(").replace("]", ")")
-    title = title.replace("{", "(").replace("}", ")")
-    title = re.sub(r"[|\\\/]", "-", title)                  # Replace path separators and pipes with a dash
-    title = re.sub(r"^[\'\*\?\"<>]+", "", title)            # Trim leading/trailing punctuation introduced by some titles
-    title = re.sub(r"[\'\*\?\"<>]+$", "", title)
-    return title
+def get_temp_dir(playlist_title: str) -> str:
+    playlist_dir = get_playlist_data_dir(playlist_title)
+    temp_dir = os.path.join(playlist_dir, "temp")
+    if os.path.isdir(temp_dir):
+        shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir, exist_ok=True)
+    return temp_dir
 
 def basic_info(playlist_url: str) -> dict[str, Any]:
     """
@@ -61,8 +52,8 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
         an empty 'entries' list if fetching fails.
     """
     try:
-        # Use the lightweight config1 to fetch only metadata (no downloads)
-        with yt_dlp.YoutubeDL(config1) as ydl:
+        # Use the lightweight yt_metadata_config to fetch only metadata (no downloads)
+        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
             return info if info else {"entries": []}
     except Exception as e:
@@ -256,7 +247,7 @@ def download_video(video_url: list[str], format: str = "mp3") -> list[tuple[str,
     
     return errors
 
-def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") -> list[tuple[str, str]]:
+def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, format: str = "mp3") -> list[tuple[str, str]]:
     """
     Download a playlist entry-by-entry in a resilient manner.
 
@@ -273,13 +264,9 @@ def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") 
         A list of errors as tuples (title, error_message).
     """
     # Temporary folder for yt-dlp downloads to avoid partial files in target
-    tmp_folder = os.path.join(folder_name, ".tmp")
-    os.makedirs(tmp_folder, exist_ok=True)
-    if os.name == "nt":
-        os.system(f'attrib +h "{tmp_folder}"')
+    tmp_folder = get_temp_dir(playlist_title)
 
     titles_map = {}
-    ordered_titles = []
     errors = []
 
     # Get playlist entries (lightweight)
@@ -299,248 +286,387 @@ def download_playlist(playlist_url: str, folder_name: str, format: str = "mp3") 
                     raise FileNotFoundError(f"{format.upper()} not found in temp folder")
 
                 original_filename = os.path.join(tmp_folder, downloaded_files[0])
+                video_id = entry.get('id')
                 title = entry.get('title', 'Unknown')
 
                 # Sanitize title for filesystem, and add numeric prefix to preserve order
-                sanitized = sanitize_title(title)
-                numbered_title = f"{idx+1} - {sanitized}"
-                final_filename = os.path.join(folder_name, f"{numbered_title}.{format}")
+                sanitized_title = sanitize_filename(title)
+                final_title = os.path.join(folder_name, f"{idx+1} - {sanitized_title}.{format}")
 
                 # Move the file atomically into the destination folder
-                os.replace(original_filename, final_filename)
+                os.replace(original_filename, final_title)
 
-                # Build/update the titles map (prev, next will be calculated when saving)
-                prev_title = ordered_titles[-1] if ordered_titles else None
-                titles_map[title] = [
-                    sanitized,
-                    sanitize_title(prev_title) if prev_title else None,
-                    None
-                ]
-                ordered_titles.append(title)
+                # Build/update the titles map
+                titles_map[video_id] = {
+                    "title": title,
+                    "sanitized_title": sanitized_title,
+                    "playlist_index": idx+1
+                }
 
                 # Save an updated JSON state after each successful entry so downloads are resumable
-                json_filename = make_path(folder_name)
+                json_filename = get_playlist_state_path(playlist_title)
                 with open(json_filename, "w", encoding="utf-8") as f:
-                    # Populate 'next' links for the serialized map before writing
-                    temp_map = titles_map.copy()
-                    for i, t in enumerate(ordered_titles[:-1]):
-                        next_title = ordered_titles[i+1]
-                        temp_map[t][2] = sanitize_title(next_title) if next_title else None
-                    json.dump(temp_map, f, ensure_ascii=False, indent=4)
+                    json.dump(titles_map, f, ensure_ascii=False, indent=4)
                  
             except Exception as e:
                 # Record the failure for this entry, but continue with the rest
                 errors.append((entry.get('title', 'Unknown'), str(e)))
                 continue
 
-    if os.name == "nt":
-        os.system(f'attrib +h "{json_filename}"')
-
     # Attempt to remove temporary folder and report errors if unable
     try:
         shutil.rmtree(tmp_folder)
     except Exception as e:
-        errors.append((".tmp cleanup failed", str(e)))
+        errors.append(("temp cleanup failed", str(e)))
 
     return errors
 
-def get_missing_videos(playlist_url: str, folder_name: str) -> tuple[dict, dict, list[str]]:
+def fetch_online_playlist_info(playlist_url: str) -> Optional[dict]:
     """
-    Compare local state with the online playlist and prepare an update plan.
-
-    The function identifies new videos to download, rebuilds a fully ordered
-    titles map, and writes the updated map to the JSON state file.
+    Fetches essential playlist data from YouTube in a single call.
 
     Args:
-        playlist_url: YouTube playlist URL.
-        folder_name: Local playlist folder path.
+        playlist_url: The URL of the YouTube playlist.
 
     Returns:
-        A tuple (new_videos, new_titles_map, errors) where:
-            - new_videos: dict {original_title: url} for items missing locally
-            - new_titles_map: complete ordered map {title: [sanitized, prev, next]}
-            - errors: list of error tuples
+        A dictionary containing the playlist title and a list of its video entries
+        (id, title, index), or None if fetching fails.
     """
-    errors = []
-    new_videos = {}
-    new_titles_map = {}
-
     try:
-        json_filename = make_path(folder_name)
-        if os.name == "nt":
-            os.system(f'attrib -h "{json_filename}"')
-        try:
-            if os.path.exists(json_filename):
-                # Load existing JSON state to know which videos are already present
-                with open(json_filename, "r", encoding="utf-8") as f:
-                    titles_map = json.load(f)
-            else:
-                # No existing state: start from empty map
-                titles_map = {}
-        except Exception as e:
-            # If JSON is corrupt/unreadable, continue with empty map but log the error
-            titles_map = {}
-            errors.append(("JSON Error", f"Error loading state file: {e}"))
-
-        # Use config1 (lightweight) to fetch the playlist listing
-        with yt_dlp.YoutubeDL(config1) as ydl:
+        # Use the lightweight config1 to fetch only metadata
+        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
 
-        # Identify videos that are in the online playlist but not in our local state.
-        ordered_titles = []
-        if info and info.get('entries'):
-            for entry in info.get('entries', []):
-                original_title = entry.get('title', 'Unknown')
-                sanitized = sanitize_title(original_title)
-                video_url = entry.get('url')
-                ordered_titles.append(original_title)
-                # Compare sanitized names to detect missing items regardless of numbering
-                if sanitized not in [sanitize_title(t) for t in titles_map.keys()]:
-                    new_videos[original_title] = video_url
-        
-        # Rebuild the entire map from scratch to ensure the order is correct.
-        for i, title in enumerate(ordered_titles):
-            sanitized = sanitize_title(title)
-            prev_title = sanitize_title(ordered_titles[i-1]) if i > 0 else None
-            next_title = sanitize_title(ordered_titles[i+1]) if i < len(ordered_titles)-1 else None
-            new_titles_map[title] = [sanitized, prev_title, next_title]
+            # Check if yt-dlp returned valid information
+            if not info or 'entries' not in info:
+                print(f"ERROR: Could not retrieve valid playlist info for {playlist_url}")
+                return None
 
-        # Overwrite the old JSON with the new, perfectly ordered map for future updates
-        with open(json_filename, "w", encoding="utf-8") as f:
-            json.dump(new_titles_map, f, ensure_ascii=False, indent=4)
+        # Prepare the data structure to be returned
+        playlist_title = info.get('title', 'Unknown Playlist')
+        online_videos = []
 
-        if os.name == "nt":
-            os.system(f'attrib +h "{json_filename}"')
+        # Loop through all entries and extract only the necessary data
+        for idx, entry in enumerate(info.get('entries', [])):
+            if not entry:
+                # Skip corrupted or unavailable entries
+                continue
+            
+            video_info = {
+                'id': entry.get('id'),
+                'title': entry.get('title', 'Unknown Title'),
+                'index': idx + 1  # Playlist index is 1-based
+            }
+            online_videos.append(video_info)
+
+        return {
+            'title': playlist_title,
+            'videos': online_videos
+        }
 
     except Exception as e:
-        errors.append(("Sync Planning", f"General error in get_missing_videos: {e}"))
-
-    return new_videos, new_titles_map, errors
-
-def update_playlist(new_videos: dict[str, str], titles_map: dict[str, list[Optional[str]]], folder_name: str) -> list[str]:
+        # Catch any exception from yt-dlp (e.g., network error, invalid URL)
+        print(f"ERROR: An exception occurred while fetching playlist info: {e}")
+        return None
+    
+def detect_format(folder_name: str) -> Optional[str]:
     """
-    Apply the update plan: download missing files, rename files to match the
-    new order, and remove obsolete files.
+    Scans a folder to detect the media file format (extension) of the first found file.
 
     Args:
-        new_videos: Mapping of new titles to their URLs.
-        titles_map: Final ordered map {title: [sanitized, prev, next]}.
-        folder_name: Target folder to update.
+        folder_name: The path to the folder to scan.
 
     Returns:
-        A list of errors encountered during the update.
+        The file extension (e.g., "mp3", "m4a") as a string, or None if no
+        media files are found.
     """
-    errors = []
-
-    # --- Determine media file format by inspecting a file in the folder ---
-    for f in os.listdir(folder_name):
-        if os.path.isfile(os.path.join(folder_name, f)):
-            format = os.path.splitext(f)[1].replace('.', '')
-
-            # Skip JSON files or other metadata files
-            if format.endswith("json"):
-                continue
-            else:
-                # Found a candidate media file; break and use its extension as format
-                break
-
-    # If no media file format was detected, abort with an error
-    if not format:
-        errors.append(f"No media files found in folder '{folder_name}'. Unable to perform update.")
-        return errors
-
-
-    # --- Phase 1: Download new videos (if any) into a temp folder and move them in place ---
-    if new_videos:
-        tmp_folder = os.path.join(folder_name, ".tmp")
-        os.makedirs(tmp_folder, exist_ok=True)
-        if os.name == "nt":
-            os.system(f'attrib +h "{tmp_folder}"')
-        
-        ydl_opts = make_config(tmp_folder, format)
-
-        for title, url in new_videos.items():
-            try:
-                # Download each missing video into the tmp folder
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.extract_info(url, download=True)
-                    downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
-                    if not downloaded_files:
-                        # If expected file not found, record an error for this title
-                        raise FileNotFoundError(f"{format.upper()} not found")
-
-                    original_filename = os.path.join(tmp_folder, downloaded_files[0])
-                    sanitized = titles_map[title][0]
-                    temp_filename = os.path.join(folder_name, f"{sanitized}.{format}")
-
-                    # Move downloaded file into the playlist folder (un-numbered yet)
-                    os.replace(original_filename, temp_filename)
-            except Exception as e:
-                # Collect per-title download errors but proceed with other tasks
-                errors.append((f"Error with '{title}'", str(e)))
-        try:
-            shutil.rmtree(tmp_folder)
-        except Exception as e:
-            errors.append(("Cleanup Error", f"Error deleting tmp_folder: {e}"))
-    
-    # --- Phase 2: Re-number all files to match the final order ---
-    ordered_titles = list(titles_map.keys())
-    for idx, original_title in enumerate(ordered_titles):
-        sanitized = titles_map[original_title][0]
-        if sanitized:
-            try:
-                # Find any existing file that matches the sanitized title (numbered or not)
-                current_files = [f for f in os.listdir(folder_name) if f.endswith(f'.{format}') and sanitized in f]
-                if current_files:
-                    old_name = os.path.join(folder_name, current_files[0])
-                    new_name = os.path.join(folder_name, f"{idx+1} - {sanitized}.{format}")
-                    # Rename only when the target name differs to avoid unnecessary operations
-                    if old_name != new_name:
-                        os.replace(old_name, new_name)
-            except Exception as e:
-                errors.append((f"Error renaming '{original_title}'", str(e)))
-
-    # --- Phase 3: Clean up obsolete files not present in the final map ---
-    final_sanitized_titles = {v[0] for v in titles_map.values()}
-    for f in os.listdir(folder_name):
-        if f.endswith(f".{format}"):
-            # Extract sanitized title portion after any numeric prefix "N - "
-            file_sanitized_title = sanitize_title(f.split(' - ', 1)[-1].rsplit(f'.{format}', 1)[0])
-            if file_sanitized_title not in final_sanitized_titles:
-                try:
-                    os.remove(os.path.join(folder_name, f))
-                except Exception as e:
-                    errors.append((f"Error deleting '{f}'", str(e)))
-    return errors
-
-def folder_backup(folder_name: str) -> tuple[Optional[str], Optional[str]]:
-    """
-    Create a backup copy of the specified folder as a subfolder named '.bak'.
-
-    The backup is used to restore the folder in case an update operation fails.
-
-    Args:
-        folder_name: Path of the folder to back up.
-
-    Returns:
-        (backup_folder_path, error_message). On success error_message is None.
-    """
-    # Note: A sibling backup folder is safer and makes restore logic simpler.
-    backup_folder = os.path.join(folder_name, ".bak")
-    
-    # Remove any existing backup to ensure we create a fresh snapshot
-    if os.path.isdir(backup_folder):
-        try:
-            shutil.rmtree(backup_folder)
-        except Exception as e:
-            return None, f"Could not remove old backup folder: {e}"
+    # A list of common media extensions to look for.
+    # This avoids picking up other files like .txt, .json, .jpg etc.
+    supported_formats = {"mp3", "m4a", "flac", "opus", "wav", "mp4", "mkv", "webm"}
 
     try:
-        # Copy the folder tree to the backup location (excluding .bak itself)
-        shutil.copytree(folder_name, backup_folder, ignore=shutil.ignore_patterns(".bak"))
-        if os.name == "nt":
-            os.system(f'attrib +h "{backup_folder}"')
-        return backup_folder, None
+        for filename in os.listdir(folder_name):
+            # Check if it's a file and not a directory
+            if os.path.isfile(os.path.join(folder_name, filename)):
+                # Extract the extension, remove the dot, and convert to lowercase
+                extension = os.path.splitext(filename)[1].replace('.', '').lower()
+                
+                # If the extension is one of our supported media formats, we found it.
+                if extension in supported_formats:
+                    return extension
+    except FileNotFoundError:
+        # The folder might not exist, which is a possible scenario
+        return None
+    
+    # If the loop finishes without finding any suitable file
+    return None
+
+def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str]]:
+    """
+    Compares local state with online and removes obsolete files.
+
+    Args:
+        online_videos: The list of video dictionaries from fetch_online_playlist_info.
+        playlist_title: The title of the playlist.
+        folder_name: The path to the local media folder.
+        
+    Returns:
+        A list of non-critical errors encountered during the cleanup process.
+    """
+    errors = []
+    state_path = get_playlist_state_path(playlist_title)
+
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            local_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # No state file, nothing to clean up.
+        return errors
+
+    online_ids = {video['id'] for video in online_videos}
+    local_ids = list(local_data.keys())
+    videos_to_delete_ids = [vid_id for vid_id in local_ids if vid_id not in online_ids]
+
+    if not videos_to_delete_ids:
+        return errors
+
+    media_format = detect_format(folder_name)
+    if not media_format:
+        errors.append(("Cleanup Warning", "Could not detect media format. Skipping cleanup."))
+        return errors
+
+    for video_id in videos_to_delete_ids:
+        video_info = local_data.get(video_id)
+        if not video_info:
+            continue
+
+        index = video_info.get("playlist_index")
+        sanitized_title = video_info.get("sanitized_title")
+        filename_to_delete = f"{index} - {sanitized_title}.{media_format}"
+        file_path = os.path.join(folder_name, filename_to_delete)
+
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+            del local_data[video_id]
+
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump(local_data, f, ensure_ascii=False, indent=4)
+
+        except OSError as e:
+            # We add the error to our list and continue with the next file.
+            errors.append(("Deletion Error", f"Could not delete file {filename_to_delete}: {e}"))
+            continue
+            
+    return errors
+
+def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str]]:
+    """
+    Reorders local files to match the current online playlist order.
+
+    This function compares the index of local videos (from state.json) with the
+    online order. It renames files accordingly and handles a backup-restore
+    process to ensure safety during file operations.
+
+    Args:
+        online_videos: The list of video dictionaries from fetch_online_playlist_info.
+        playlist_title: The title of the playlist.
+        folder_name: The path to the local media folder.
+
+    Returns:
+        A list of non-critical errors encountered during the reordering process.
+    """
+    errors = []
+    state_path = get_playlist_state_path(playlist_title)
+
+    # --- Step 1: Backup and State Loading ---
+    backup_path = None
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            local_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # No state file, nothing to reorder.
+        return errors
+
+    # Create a mapping of online IDs to their new index for quick lookup
+    online_order_map = {video['id']: video['index'] for video in online_videos}
+    
+    # Identify files that need renaming
+    files_to_rename = []
+    for video_id, video_info in local_data.items():
+        if video_id in online_order_map:
+            current_index = video_info.get("playlist_index")
+            new_index = online_order_map[video_id]
+            if current_index != new_index:
+                files_to_rename.append({
+                    'id': video_id,
+                    'old_index': current_index,
+                    'new_index': new_index,
+                    'sanitized_title': video_info.get("sanitized_title")
+                })
+    
+    if not files_to_rename:
+        # Everything is already in order.
+        return errors
+
+    # --- Step 2: Critical Phase - Backup and Rename ---
+    try:
+        # Create backup ONLY if there are files to rename
+        backup_path, backup_error = folder_backup(folder_name, playlist_title)
+        if backup_error:
+            errors.append(("Backup Error", backup_error))
+            return errors
+
+        media_format = detect_format(folder_name)
+        if not media_format:
+            errors.append(("Reorder Warning", "Could not detect media format. Skipping reorder."))
+            return errors
+
+        for task in files_to_rename:
+            old_filename = f"{task['old_index']} - {task['sanitized_title']}.{media_format}"
+            new_filename = f"{task['new_index']} - {task['sanitized_title']}.{media_format}"
+            old_filepath = os.path.join(folder_name, old_filename)
+            new_filepath = os.path.join(folder_name, new_filename)
+            
+            if os.path.exists(old_filepath):
+                os.rename(old_filepath, new_filepath)
+                # Update the index in our local data
+                local_data[task['id']]['playlist_index'] = task['new_index']
+                # Atomically save the state file
+                with open(state_path, "w", encoding="utf-8") as f:
+                    json.dump(local_data, f, ensure_ascii=False, indent=4)
+            else:
+                errors.append(("File Not Found", f"Could not find file to rename: {old_filename}"))
+
+    except Exception as e:
+        # --- Step 3: Rollback on Critical Failure ---
+        errors.append(("CRITICAL REORDER FAILED", f"An error occurred: {e}. Attempting to restore from backup."))
+        if backup_path and os.path.isdir(backup_path):
+            try:
+                # Simple restore: remove the broken folder and replace it with the backup
+                shutil.rmtree(folder_name)
+                shutil.copytree(backup_path, folder_name)
+                errors.append(("Restore Success", "Successfully restored folder from backup."))
+            except Exception as restore_e:
+                errors.append(("CRITICAL RESTORE FAILED", f"Could not restore from backup: {restore_e}"))
+        raise  # Re-raise the exception to stop the update process in main
+
+    finally:
+        # --- Step 4: Cleanup ---
+        # Always remove the backup folder when done
+        if backup_path and os.path.isdir(backup_path):
+            try:
+                shutil.rmtree(backup_path)
+            except Exception as clean_e:
+                errors.append(("Backup Cleanup Failed", str(clean_e)))
+
+    return errors
+
+def download_new_videos(online_videos: list, playlist_title: str, folder_name: str, media_format: str) -> list[tuple[str, str]]:
+    """
+    Downloads new videos that are in the online playlist but not locally.
+
+    This function identifies missing videos by comparing the online playlist
+    with the local state file. It downloads each new video and adds its entry
+
+    to the state file upon success.
+
+    Args:
+        online_videos: The list of video dictionaries from fetch_online_playlist_info.
+        playlist_title: The title of the playlist.
+        folder_name: The path to the local media folder.
+        media_format: The desired output format (e.g., "mp3").
+
+    Returns:
+        A list of non-critical errors encountered during the download process.
+    """
+    errors = []
+    state_path = get_playlist_state_path(playlist_title)
+
+    # Step 1: Load local state
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            local_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # If the state file doesn't exist, we start with an empty dictionary.
+        local_data = {}
+
+    # Step 2: Identify missing videos
+    local_ids = set(local_data.keys())
+    new_videos = [video for video in online_videos if video['id'] not in local_ids]
+
+    if not new_videos:
+        return errors
+
+    # Step 3: Set up for download
+    tmp_folder = get_temp_dir(playlist_title)
+    ydl_opts = make_config(tmp_folder, format=media_format)
+    
+    # Step 4: Perform atomic download operations
+    for video in new_videos:
+        video_url = VIDEO_URL_TYPE1 + video['id']
+        video_title = video['title']
+        
+        try:
+            # a. Download the video to the temp folder
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([video_url])
+
+            # Find the downloaded file in the temp folder
+            downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(media_format)]
+            if not downloaded_files:
+                raise FileNotFoundError(f"Downloaded file with format .{media_format} not found in temp folder.")
+
+            original_filepath = os.path.join(tmp_folder, downloaded_files[0])
+            
+            # b. Move the file to the final destination
+            sanitized_title = sanitize_filename(video_title)
+            final_filename = f"{video['index']} - {sanitized_title}.{media_format}"
+            final_filepath = os.path.join(folder_name, final_filename)
+            
+            shutil.move(original_filepath, final_filepath)
+
+            # c. Add the new video to our local data
+            local_data[video['id']] = {
+                "title": video_title,
+                "sanitized_title": sanitized_title,
+                "playlist_index": video['index']
+            }
+
+            # d. Save the updated state file
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump(local_data, f, ensure_ascii=False, indent=4)
+
+        except Exception as e:
+            errors.append(("Download Error", f"Failed to download '{video_title}': {e}"))
+            # Clean up the temp folder to avoid issues with the next video
+            for f in os.listdir(tmp_folder):
+                os.remove(os.path.join(tmp_folder, f))
+            continue
+
+    # Step 5: Final cleanup
+    try:
+        shutil.rmtree(tmp_folder)
+    except Exception as e:
+        errors.append(("Temp Cleanup Failed", str(e)))
+
+    return errors
+
+def folder_backup(folder_name: str, playlist_title: str) -> tuple[Optional[str], Optional[str]]:
+    playlist_data_dir = get_playlist_data_dir(playlist_title)
+    
+    backup_path = os.path.join(playlist_data_dir, "backup")
+
+    if os.path.isdir(backup_path):
+        try:
+            shutil.rmtree(backup_path)
+        except Exception as e:
+            return None, f"Could not remove old backup folder: {e}"
+        
+    try:
+        shutil.copytree(folder_name, backup_path)
+        return backup_path, None
     except Exception as e:
         return None, f"Failed to create backup for '{folder_name}': {e}"
     
