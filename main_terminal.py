@@ -169,7 +169,7 @@ if __name__ == "__main__":
         if current_state == "main_menu":
             clear_screen()
             print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
-            print("1 - Manage Playlists\n2 - Download Videos\n3 - Exit\n")
+            print("1 - Manage Playlists\n2 - Download Videos\n3 - Delete Application Data\n4 - Exit")
             user_choice = input("Select an option: ")
 
             if user_choice == "1":
@@ -177,6 +177,8 @@ if __name__ == "__main__":
             elif user_choice == "2":
                 current_state = "videos_download"
             elif user_choice == "3":
+                current_state = "delete_data"
+            elif user_choice == "4":
                 current_state = "exit"
             else:
                 print("\nInvalid option. Please select 1, 2, or 3. Press 'Enter' to continue...")
@@ -313,6 +315,27 @@ if __name__ == "__main__":
                 sleep(1)
 
             current_state = "main_menu"
+
+        elif current_state == "delete_data":
+            clear_screen()
+            print("\nWARNING: This will permanently delete all saved playlist states,")
+            print("backups, and temporary files associated with this application.")
+            print("This action CANNOT be undone.")
+            print("\nYour downloaded media files (mp3, mp4, etc.) will NOT be affected,")
+            print("but the application may not work properly anymore.")   
+
+            confirm = input("\nAre you absolutely sure you want to proceed? (Type 'yes' to confirm, 'no' to exit): ").strip().lower()
+
+            if confirm == 'yes':
+                # Call the core function to perform the deletion
+                success, message = core.delete_app_data()
+                print(f"\n{message}")
+            else:
+                print("\nOperation cancelled. No data has been deleted.")
+            
+            print("\nPress 'Enter' to return to the main menu...")
+            input()
+            current_state = "main_menu"         
 
         # --- EXIT ---
         elif current_state == "exit":

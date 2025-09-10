@@ -674,3 +674,28 @@ def folder_backup(folder_name: str, playlist_title: str) -> tuple[Optional[str],
     except Exception as e:
         return None, f"Failed to create backup for '{folder_name}': {e}"
     
+def delete_app_data() -> tuple[bool, str]:
+    """
+    Finds and deletes the entire application data directory.
+
+    This is a destructive operation and should be used with caution.
+
+    Returns:
+        A tuple containing a success boolean and a message string.
+    """
+    try:
+        data_dir = get_app_data_dir()
+        
+        # Check if the directory actually exists
+        if not os.path.isdir(data_dir):
+            return (True, "Application data directory does not exist. Nothing to delete.")
+        
+        # Delete the entire directory tree
+        shutil.rmtree(data_dir)
+        
+        return (True, f"Successfully deleted application data from: {data_dir}")
+
+    except Exception as e:
+        # Catch potential permission errors or other OS-level issues
+        return (False, f"An error occurred while deleting application data: {e}")
+    
