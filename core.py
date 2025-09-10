@@ -86,22 +86,17 @@ def get_ffmpeg_path() -> Optional[str]:
 def get_format_options(format_choice: str) -> dict:
     """
     Build yt-dlp option fragments for a given output format.
-
-    Args:
-        format_choice: Desired output format (mp3, m4a, flac, opus, wav, mp4, mkv, webm).
-
-    Returns:
-        A dict with yt-dlp configuration options for the selected format.
+    ...
     """
     format_choice = format_choice.lower().strip()
 
-    # Audio extraction options: choose codec and thumbnail embedding where appropriate
     if format_choice == 'mp3':
         return {
             "format": "bestaudio/best",
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"},
                 {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"},
             ]
         }
 
@@ -111,6 +106,7 @@ def get_format_options(format_choice: str) -> dict:
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"},
                 {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"}, 
             ]
         }
 
@@ -120,6 +116,7 @@ def get_format_options(format_choice: str) -> dict:
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "flac"},
                 {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"}, 
             ]
         }
 
@@ -129,6 +126,7 @@ def get_format_options(format_choice: str) -> dict:
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "opus"},
                 {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"}, 
             ]
         }
 
@@ -137,10 +135,11 @@ def get_format_options(format_choice: str) -> dict:
             "format": "bestaudio/best",
             "postprocessors": [
                 {"key": "FFmpegExtractAudio", "preferredcodec": "wav"},
+                {"key": "FFmpegMetadata"},
             ]
         }
 
-    # Video formats: prefer container/codec combinations for predictable output
+    # Video formats are already correct as they included FFmpegMetadata
     elif format_choice == 'mp4':
         return {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -156,7 +155,7 @@ def get_format_options(format_choice: str) -> dict:
             "merge_output_format": "mkv",
             "postprocessors": [
                 {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"},
+                {"key": "FFmpegMetadata"}, 
             ]
         }
 
@@ -170,26 +169,31 @@ def get_format_options(format_choice: str) -> dict:
         }
         
     else:
-        # Unknown format: fallback to mp3 options and inform the user
         print(f"Format '{format_choice}' not recognized. Using 'mp3' as default.")
         return get_format_options('mp3')
 
 def make_config(path: str, format: str = "mp3") -> dict:
-
+    """
+    Creates the full yt-dlp configuration dictionary for a download.
+    """
     format_opts = get_format_options(format)
 
     base_config = {
-        # Use title-based template; extension will be chosen by yt-dlp/ffmpeg
         "outtmpl": os.path.join(path, "%(title)s.%(ext)s"),
         "add_metadata": True,
         "writethumbnail": True,
         "quiet": True,
-        "ignoreerrors": True
+        "ignoreerrors": True,
+        
+        "parse_metadata": [
+            "artist:%(artist|channel)s",
+            "album:%(album|playlist_title)s",
+            "date:%(upload_date)s"
+        ]
     }
    
     final_config = {**base_config, **format_opts}
 
-    # If the bundle contains a private ffmpeg, point yt-dlp to it
     ffmpeg_location = get_ffmpeg_path()
     if ffmpeg_location:
         final_config['ffmpeg_location'] = ffmpeg_location
