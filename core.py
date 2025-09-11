@@ -1,8 +1,9 @@
 import os, sys, shutil, json
 import yt_dlp
-from typing import Optional, Any, Iterator
+from typing import Optional, Any
 from pathvalidate import sanitize_filename
 import appdirs
+import subprocess
 
 # --- Constants and Configurations ---
 
@@ -39,6 +40,56 @@ def get_temp_dir(playlist_title: str) -> str:
         shutil.rmtree(temp_dir)
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
+
+def get_actual_file_quality(file_path: str) -> str:
+    """
+    Uses ffprobe to inspect a media file and get its actual quality.
+
+    Args:
+        file_path: The full path to the media file.
+
+    Returns:
+        A formatted quality string (e.g., "(1080p)", "(128kbps)") or an empty string.
+    """
+    try:
+        # Questo comando chiede a ffprobe di mostrare le info sui flussi (streams) in formato JSON
+        command = [
+            'ffprobe',
+            '-v', 'quiet',
+            '-print_format', 'json',
+            '-show_streams',
+            file_path
+        ]
+        
+        # Esegui il comando e cattura l'output
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        
+        # Carica l'output JSON in un dizionario Python
+        media_info = json.loads(result.stdout)
+        
+        # Il primo flusso ('streams'[0]) è di solito quello che ci interessa
+        stream_info = media_info['streams'][0]
+        
+        if stream_info['codec_type'] == 'video':
+            # Per i video, prendiamo l'altezza (height)
+            height = stream_info.get('height')
+            return f"({height}p)" if height else ""
+        
+        elif stream_info['codec_type'] == 'audio':
+            # Per l'audio, prendiamo il bitrate in bits/sec e lo convertiamo in kbps
+            bit_rate = stream_info.get('bit_rate')
+            if bit_rate:
+                kbps = round(int(bit_rate) / 1000)
+                return f"({kbps}kbps)"
+            return ""
+
+    except (FileNotFoundError, subprocess.CalledProcessError, IndexError, KeyError) as e:
+        # Se ffprobe non viene trovato, o il file non ha info valide, o c'è un errore,
+        # restituiamo una stringa vuota per non rompere il programma.
+        # print(f"Could not get quality for {file_path}: {e}") # (opzionale, per debug)
+        return ""
+    
+    return ""
 
 def basic_info(playlist_url: str) -> dict[str, Any]:
     """
@@ -82,99 +133,70 @@ def get_ffmpeg_path() -> Optional[str]:
     
     return None
 
-def get_format_options(format_choice: str) -> dict:
+def get_options(format: str, quality: Optional[str]) -> dict:
     """
-    Build yt-dlp option fragments for a given output format.
-    ...
+    Builds yt-dlp option fragments for a given format and quality.
+    Audio is always best quality; video quality is user-defined.
     """
-    format_choice = format_choice.lower().strip()
+    format = format.lower().strip()
 
-    if format_choice == 'mp3':
-        return {
-            "format": "bestaudio/best",
-            "postprocessors": [
-                {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"},
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"},
-            ]
-        }
+    # --- GROUP 1: Audio Formats ---
+    if format in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
+        audio_quality = "bestaudio/best"
 
-    elif format_choice == 'm4a':
-        return {
-            "format": "bestaudio/best",
-            "postprocessors": [
-                {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"},
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"}, 
-            ]
-        }
-
-    elif format_choice == 'flac':
-        return {
-            "format": "bestaudio/best",
-            "postprocessors": [
-                {"key": "FFmpegExtractAudio", "preferredcodec": "flac"},
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"}, 
-            ]
-        }
-
-    elif format_choice == 'opus':
-        return {
-            "format": "bestaudio/best",
-            "postprocessors": [
-                {"key": "FFmpegExtractAudio", "preferredcodec": "opus"},
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"}, 
-            ]
-        }
-
-    elif format_choice == 'wav':
-        return {
-            "format": "bestaudio/best",
-            "postprocessors": [
-                {"key": "FFmpegExtractAudio", "preferredcodec": "wav"},
-                {"key": "FFmpegMetadata"},
-            ]
-        }
-
-    # Video formats are already correct as they included FFmpegMetadata
-    elif format_choice == 'mp4':
-        return {
-            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-            "postprocessors": [
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"},
-            ]
-        }
-
-    elif format_choice == 'mkv':
-        return {
-            "format": "bestvideo+bestaudio/best",
-            "merge_output_format": "mkv",
-            "postprocessors": [
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"}, 
-            ]
-        }
-
-    elif format_choice == 'webm':
-        return {
-            "format": "bestvideo[ext=webm]+bestaudio[ext=webm]/best",
-            "merge_output_format": "webm",
-            "postprocessors": [
-                {"key": "FFmpegMetadata"},
-            ]
-        }
+        postprocessors = [
+            {"key": "EmbedThumbnail"},
+            {"key": "FFmpegMetadata"}
+        ]
         
-    else:
-        return get_format_options('mp3')
+        if format == 'mp3':
+            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"})
+        elif format == 'm4a':
+            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"})
+        elif format == 'flac':
+            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "flac"})
+        elif format == 'opus':
+            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "opus"})
+        elif format == 'wav':
+            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "wav"})
+            
+        return {
+            "format": audio_quality,
+            "postprocessors": postprocessors
+        }
 
-def make_config(path: str, format: str = "mp3") -> dict:
+    # --- GROUP 2: Video Formats ---
+    elif format in ['mp4', 'mkv', 'webm']:
+        
+        if quality is None:
+            quality = "1080" 
+
+        if format == 'mp4':
+            video_quality = f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        elif format == 'webm':
+            video_quality = f"bestvideo[height<={quality}][ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best"
+        else: # mkv
+            video_quality = f"bestvideo[height<={quality}]+bestaudio/best"
+        
+        return {
+            "format": video_quality,
+            "merge_output_format": format if format != 'mp4' else None,
+            "postprocessors": [
+                {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"}, 
+            ]
+        }
+    
+    # --- Fallback ---
+    else:
+        return get_options("mp3", None)
+        
+
+def make_config(path: str, format: str, quality: Optional[str]) -> dict:
     """
     Creates the full yt-dlp configuration dictionary for a download.
     """
-    format_opts = get_format_options(format)
+    format_opts = get_options(format, quality)
 
     base_config = {
         "outtmpl": os.path.join(path, "%(title)s.%(ext)s"),
@@ -210,7 +232,7 @@ def make_path(folder_name: str) -> str:
     """
     return os.path.join(folder_name, f".{os.path.basename(folder_name)}.json")
 
-def download_video(video_url: list[str], format: str = "mp3") -> list[tuple[str, str]]:
+def download_video(video_url: list[str], format: str, quality: Optional[str]) -> list[tuple[str, str]]:
     """
     Download one or more single videos into the current directory.
 
@@ -224,24 +246,38 @@ def download_video(video_url: list[str], format: str = "mp3") -> list[tuple[str,
     Returns:
         A list of errors as tuples (video_title, error_message).
     """
-    directory = "." 
+    # Temporary folder for yt-dlp downloads to avoid partial files in target
+    tmp_folder = get_temp_dir("video download")
     errors = []
 
-    # Build yt-dlp options using the provided format and the current directory
-    ydl_opts = make_config(directory, format=format)
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(make_config(tmp_folder, format, quality)) as ydl:
         for url in video_url:
-            # Default title used in case metadata extraction fails
-            video_title = f"Video Sconosciuto ({url})"
             try:
                 # Try to obtain metadata first to have a readable error context
                 info = ydl.extract_info(url, download=False)
                 if info:
-                    video_title = info.get('title', video_title)
+                    video_title = info.get('title', 'Unknown Title')
+
+                sanitized_title = sanitize_filename(video_title)
 
                 # Perform the actual download; any postprocessors run automatically
                 ydl.download([url])
+
+                downloaded_video = os.listdir(tmp_folder)
+                if not downloaded_video:
+                    # If no file found, treat as a recoverable error for this entry
+                    raise FileNotFoundError(f"{format.upper()} not found in temp folder")
+                
+                video_path = os.path.join(tmp_folder, downloaded_video[0])
+
+                quality_str = ""
+                if format in ['mp4', 'mkv', 'webm']:
+                    quality_str = get_actual_file_quality(video_path)
+
+                final_filename = f"{sanitized_title}{quality_str}.{format}"
+                final_path = os.path.join(".", final_filename)
+
+                os.rename(video_path, final_path)
 
             # Collect errors per-video without stopping the whole batch
             except Exception as e:
@@ -249,7 +285,7 @@ def download_video(video_url: list[str], format: str = "mp3") -> list[tuple[str,
     
     return errors
 
-def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, format: str = "mp3") -> list[tuple[str, str]]:
+def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
     """
     Download a playlist entry-by-entry in a resilient manner.
 
@@ -268,7 +304,10 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
     # Temporary folder for yt-dlp downloads to avoid partial files in target
     tmp_folder = get_temp_dir(playlist_title)
 
-    titles_map = {}
+    titles_map = {
+        "quality": quality,
+        "files": {}
+    }
     errors = []
 
     # Get playlist entries (lightweight)
@@ -276,7 +315,7 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
 
     # Iterate entries in playlist order and download one by one
     for idx, entry in enumerate(info.get('entries', [])): 
-        with yt_dlp.YoutubeDL(make_config(tmp_folder, format=format)) as ydl:
+        with yt_dlp.YoutubeDL(make_config(tmp_folder, format, quality)) as ydl:
             try:
                 # Download the single entry into the temporary folder
                 ydl.download([entry.get('url')])
@@ -291,19 +330,25 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
                 video_id = entry.get('id')
                 title = entry.get('title', 'Unknown')
 
+                quality_str = ""
+                if format in ['mp4', 'mkv', 'webm']:
+                    quality_str = get_actual_file_quality(original_filename)
+
                 # Sanitize title for filesystem, and add numeric prefix to preserve order
                 sanitized_title = sanitize_filename(title)
-                final_title = os.path.join(folder_name, f"{idx+1} - {sanitized_title}.{format}")
+                final_title = os.path.join(folder_name, f"{idx+1} - {sanitized_title}{quality_str}.{format}")
 
                 # Move the file atomically into the destination folder
                 os.replace(original_filename, final_title)
 
                 # Build/update the titles map
-                titles_map[video_id] = {
+                video_details = {
                     "title": title,
                     "sanitized_title": sanitized_title,
                     "playlist_index": idx+1
                 }
+
+                titles_map["files"][video_id] = video_details
 
                 # Save an updated JSON state after each successful entry so downloads are resumable
                 json_filename = get_playlist_state_path(playlist_title)
@@ -426,7 +471,7 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
         return errors
 
     online_ids = {video['id'] for video in online_videos}
-    local_ids = list(local_data.keys())
+    local_ids = list(local_data.get("files", {}).keys())
     videos_to_delete_ids = [vid_id for vid_id in local_ids if vid_id not in online_ids]
 
     if not videos_to_delete_ids:
@@ -438,7 +483,7 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
         return errors
 
     for video_id in videos_to_delete_ids:
-        video_info = local_data.get(video_id)
+        video_info = local_data["files"].get(video_id)
         if not video_info:
             continue
 
@@ -451,7 +496,7 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-            del local_data[video_id]
+            del local_data["files"][video_id]
 
             with open(state_path, "w", encoding="utf-8") as f:
                 json.dump(local_data, f, ensure_ascii=False, indent=4)
@@ -496,7 +541,7 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
     
     # Identify files that need renaming
     files_to_rename = []
-    for video_id, video_info in local_data.items():
+    for video_id, video_info in local_data.get("files", {}).items():
         if video_id in online_order_map:
             current_index = video_info.get("playlist_index")
             new_index = online_order_map[video_id]
@@ -534,7 +579,7 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
             if os.path.exists(old_filepath):
                 os.rename(old_filepath, new_filepath)
                 # Update the index in our local data
-                local_data[task['id']]['playlist_index'] = task['new_index']
+                local_data["files"][task['id']]['playlist_index'] = task['new_index']
                 # Atomically save the state file
                 with open(state_path, "w", encoding="utf-8") as f:
                     json.dump(local_data, f, ensure_ascii=False, indent=4)
@@ -565,7 +610,7 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
 
     return errors
 
-def download_new_videos(online_videos: list, playlist_title: str, folder_name: str, media_format: str) -> list[tuple[str, str]]:
+def download_new_videos(online_videos: list, playlist_title: str, folder_name: str, format: str) -> list[tuple[str, str]]:
     """
     Downloads new videos that are in the online playlist but not locally.
 
@@ -595,15 +640,17 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
         local_data = {}
 
     # Step 2: Identify missing videos
-    local_ids = set(local_data.keys())
+    local_ids = set(local_data.get("files", {}).keys())
     new_videos = [video for video in online_videos if video['id'] not in local_ids]
 
     if not new_videos:
         return errors
 
     # Step 3: Set up for download
+    quality = local_data.get("quality", None)
+
     tmp_folder = get_temp_dir(playlist_title)
-    ydl_opts = make_config(tmp_folder, format=media_format)
+    ydl_opts = make_config(tmp_folder, format, quality)
     
     # Step 4: Perform atomic download operations
     for video in new_videos:
@@ -616,21 +663,21 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
                 ydl.download([video_url])
 
             # Find the downloaded file in the temp folder
-            downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(media_format)]
+            downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
             if not downloaded_files:
-                raise FileNotFoundError(f"Downloaded file with format .{media_format} not found in temp folder.")
+                raise FileNotFoundError(f"Downloaded file with format .{format} not found in temp folder.")
 
             original_filepath = os.path.join(tmp_folder, downloaded_files[0])
             
             # b. Move the file to the final destination
             sanitized_title = sanitize_filename(video_title)
-            final_filename = f"{video['index']} - {sanitized_title}.{media_format}"
+            final_filename = f"{video['index']} - {sanitized_title}.{format}"
             final_filepath = os.path.join(folder_name, final_filename)
             
             shutil.move(original_filepath, final_filepath)
 
             # c. Add the new video to our local data
-            local_data[video['id']] = {
+            local_data["files"][video['id']] = {
                 "title": video_title,
                 "sanitized_title": sanitized_title,
                 "playlist_index": video['index']

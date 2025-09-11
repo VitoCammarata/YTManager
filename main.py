@@ -19,6 +19,8 @@ import core
 from core import yt_metadata_config
 from core import PLAYLIST_URL_TYPE, VIDEO_URL_TYPE1, VIDEO_URL_TYPE2
 
+key_words = [("download", "Download"), ("update", "Update")]
+
 def clear_screen():
     os.system("cls") if os.name == "nt" else os.system("clear")    
 
@@ -33,30 +35,80 @@ def ask_for_format() -> str:
         Clears the terminal, shows available formats, validates input and
         repeats until a supported format is entered.
     """
-    formats_list = ["mp3", "m4a", "flac", "opus", "wav", "mp4", "mkv", "webm"]
-    clear_screen()    
+    clear_screen()  
+
+    formats_list = {
+        "1": "mp3",
+        "2": "m4a",
+        "3": "flac",
+        "4": "opus",
+        "5": "wav",
+        "6": "mp4",
+        "7": "mkv",
+        "8": "webm"
+    }
+  
 
     while True:
         print("\nChose a format for the download:")
-        print("- mp3  (Audio, max compatibility)")
-        print("- m4a  (Audio, modern & efficient)")
-        print("- flac (Audio, lossless - large files)")
-        print("- opus (Audio, ideal for speech - small files)")
-        print("- wav  (Audio, uncompressed - for editing)")
-        print("- mp4  (Video + Audio, max compatibility)")
-        print("- mkv  (Video + Audio, flexible format)")
-        print("- webm (Video + Audio, modern web format)")
+        print("1: mp3  (Audio, max compatibility)")
+        print("2: m4a  (Audio, modern & efficient)")
+        print("3: flac (Audio, lossless - large files)")
+        print("4: opus (Audio, ideal for speech - small files)")
+        print("5: wav  (Audio, uncompressed - for editing)")
+        print("6: mp4  (Video + Audio, max compatibility)")
+        print("7: mkv  (Video + Audio, flexible format)")
+        print("8: webm (Video + Audio, modern web format)")
         
-        chosen_format = input("\nFormat: ").strip().lower()
-        if chosen_format not in formats_list:
-            print("\nInvalid format. Press 'Enter' continue...")
+        chosen_format = input("\nFormat: ").strip()
+
+        if chosen_format in formats_list:
+            clear_screen()
+            return formats_list[chosen_format]
+        else:
+            print(f"\nInvalid choice. Please select a number from 1 to {len(formats_list)}. Press 'Enter' to continue...")
             input()
             clear_screen()
-            continue
-        else:
+        
+def ask_for_video_quality() -> str:
+    """
+    Prompts the user to choose a specific video resolution.
+
+    Returns:
+        The chosen resolution as a string (e.g., "1080", "720").
+    """
+    clear_screen()
+
+    quality_options = {
+        "1": "2160", 
+        "2": "1440",  
+        "3": "1080",  
+        "4": "720",   
+        "5": "480",   
+        "6": "360"   
+    }
+    
+    while True:
+        print("\nChoose a maximum video resolution for the download:")
+        print("Note: If a video is not available in the chosen quality,")
+        print("the next best available quality will be downloaded.")
+        print("1: 4K (2160p)")
+        print("2: 2K (1440p)")
+        print("3: Full HD (1080p)")
+        print("4: HD (720p)")
+        print("5: Standard (480p)")
+        print("6: Low (360p)")
+        
+        choice = input("\nResolution: ").strip()
+        
+        if choice in quality_options:
             clear_screen()
-            print("Download...")
-            return chosen_format
+            return quality_options[choice]
+        else:
+            print(f"\nInvalid choice. Please select a number from 1 to {len(quality_options)}. Press 'Enter' to continue...")
+            input()
+            clear_screen()
+        
     
 
 def playlist_urls_aquisition(user_choice: str) -> list[str]:
@@ -79,22 +131,21 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         clear_screen()
 
     local_playlist_url = []
-    key_words = ["download", "Download"] if user_choice == "1" else ["update", "Update"]
+
+    key_word = key_words[0 if user_choice == "1" else 1][0]
 
     while True:
         columns = shutil.get_terminal_size().columns
         print("\n" + "### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
-        print(f"Insert your playlist URLs: (Insert '{key_words[0]}' to start the {key_words[0]})\n")
+        print(f"Insert your playlist URLs: (Insert '{key_word}' to start the {key_word})\n")
 
         if len(local_playlist_url):
             for j, url in enumerate(local_playlist_url):
                 print(f"URL {j+1}: {url}")
 
         user_input = input(f"Input: ").strip()
-        if user_input.lower() == f"{key_words[0]}":
-            if user_input == "update":
-                clear_screen()
-                print(f"\n{key_words[1]}...\n")
+        if user_input.lower() == key_words[0][0] and user_choice == "1" or user_input.lower() == key_words[1][0] and user_choice == "2":
+            clear_screen()
             return local_playlist_url
         
         # Extracts the playlist ID and rebuilds a clean URL to standardize it.
@@ -142,7 +193,6 @@ def video_urls_aquisition() -> list[str]:
         user_input = input(f"Input: ").strip()
         if user_input.lower() == "download":
             clear_screen()
-            print("\nDownload...")
             return local_videos_url
     
         # Extracts the video ID and rebuilds a clean URL to standardize it.
@@ -198,6 +248,13 @@ if __name__ == "__main__":
                     clear_screen()
                     playlist_url = playlist_urls_aquisition(user_choice)
                     chosen_format = ask_for_format()
+
+                    chosen_quality = None
+                    if chosen_format not in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
+                        chosen_quality = ask_for_video_quality()
+
+                    print(f"{key_words[0][1]}...\n")
+
                     errors = []
 
                     for url in playlist_url:
@@ -217,8 +274,7 @@ if __name__ == "__main__":
                         # Create destination folder and start downloading playlist entries
                         os.makedirs(folder_name, exist_ok=True)
                         # Delegate the resilient per-entry download to core.download_playlist
-                        print("\n")
-                        errors.extend(core.download_playlist(url, folder_name, playlist_title, format=chosen_format))
+                        errors.extend(core.download_playlist(url, folder_name, playlist_title, chosen_format, chosen_quality))
 
                     # Report download errors (if any)
                     if errors:
@@ -227,7 +283,7 @@ if __name__ == "__main__":
                             print(f" - {error}")
                     else:
                         print("\nDownload completed successfully for all playlists!")
-                        sleep(1)
+                        sleep(2)
 
                     current_state = "main_menu"
                     break
@@ -237,6 +293,8 @@ if __name__ == "__main__":
                     clear_screen()
                     playlist_url = playlist_urls_aquisition(user_choice)
                     errors = []
+
+                    print(f"{key_words[1][1]}...\n")
 
                     for url in playlist_url:
                         info = core.fetch_online_playlist_info(url)
@@ -250,8 +308,8 @@ if __name__ == "__main__":
 
                         # If local folder doesn't exist, cannot update: ask user to download first
                         if not os.path.isdir(folder_name):
-                            print(f"\nFolder '{folder_name}' not found. Please use the Download option first.")
-                            sleep(1.5)
+                            print(f"\nFolder '{folder_name}' not found. Please use the Download option first.\nPress 'Enter' to continue...")
+                            input()
                             continue
                         
                         try:
@@ -264,7 +322,7 @@ if __name__ == "__main__":
                                 errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, media_format))
                             else:
                                 media_format = ask_for_format()
-                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, chosen_format))
+                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, media_format))
 
 
                         except Exception as e:
@@ -278,7 +336,7 @@ if __name__ == "__main__":
                             print(f" - [{error_type}] {error_msg}")
                     else:
                         print("\nUpdate completed successfully for all playlists!")
-                        sleep(1)
+                        sleep(2)
 
                     current_state = "main_menu"
                     break
@@ -302,10 +360,17 @@ if __name__ == "__main__":
             clear_screen()
             video_url = video_urls_aquisition()
             chosen_format = ask_for_format()
+
+            chosen_quality = None
+            if chosen_format not in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
+                chosen_quality = ask_for_video_quality()
+
+            print(f"{key_words[0][1]}...\n")
+
             errors = []
 
             # Delegate single-video downloads to core.download_video
-            errors.extend(core.download_video(video_url, format=chosen_format))
+            errors.extend(core.download_video(video_url, chosen_format, chosen_quality))
 
             if errors:
                 print("\nSome errors occurred during the download:")
