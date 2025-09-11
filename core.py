@@ -1,6 +1,6 @@
 import os, sys, shutil, json
 import yt_dlp
-from typing import Optional, Any
+from typing import Optional, Any, Iterator
 from pathvalidate import sanitize_filename
 import appdirs
 
@@ -57,8 +57,7 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
             info = ydl.extract_info(playlist_url, download=False)
             return info if info else {"entries": []}
     except Exception as e:
-        print(f"ERROR: Could not fetch playlist info. Reason: {e}")
-        return {"entries": []}
+        raise Exception(f"Could not fetch basic playlist info. Reason: {e}")
     
 def get_ffmpeg_path() -> Optional[str]:
     """
@@ -169,7 +168,6 @@ def get_format_options(format_choice: str) -> dict:
         }
         
     else:
-        print(f"Format '{format_choice}' not recognized. Using 'mp3' as default.")
         return get_format_options('mp3')
 
 def make_config(path: str, format: str = "mp3") -> dict:
@@ -311,6 +309,8 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
                 json_filename = get_playlist_state_path(playlist_title)
                 with open(json_filename, "w", encoding="utf-8") as f:
                     json.dump(titles_map, f, ensure_ascii=False, indent=4)
+
+                print(f"- {sanitized_title} downloaded.")
                  
             except Exception as e:
                 # Record the failure for this entry, but continue with the rest
@@ -337,13 +337,12 @@ def fetch_online_playlist_info(playlist_url: str) -> Optional[dict]:
         (id, title, index), or None if fetching fails.
     """
     try:
-        # Use the lightweight config1 to fetch only metadata
+        # Use the lightweight yt_metadata_config to fetch only metadata
         with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
 
             # Check if yt-dlp returned valid information
             if not info or 'entries' not in info:
-                print(f"ERROR: Could not retrieve valid playlist info for {playlist_url}")
                 return None
 
         # Prepare the data structure to be returned
@@ -368,9 +367,8 @@ def fetch_online_playlist_info(playlist_url: str) -> Optional[dict]:
             'videos': online_videos
         }
 
-    except Exception as e:
+    except:
         # Catch any exception from yt-dlp (e.g., network error, invalid URL)
-        print(f"ERROR: An exception occurred while fetching playlist info: {e}")
         return None
     
 def detect_format(folder_name: str) -> Optional[str]:
@@ -641,6 +639,8 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
             # d. Save the updated state file
             with open(state_path, "w", encoding="utf-8") as f:
                 json.dump(local_data, f, ensure_ascii=False, indent=4)
+
+            print(f"- {sanitized_title} downloaded")
 
         except Exception as e:
             errors.append(("Download Error", f"Failed to download '{video_title}': {e}"))

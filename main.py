@@ -94,7 +94,7 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         if user_input.lower() == f"{key_words[0]}":
             if user_input == "update":
                 clear_screen()
-                print(f"\n{key_words[1]}...")
+                print(f"\n{key_words[1]}...\n")
             return local_playlist_url
         
         # Extracts the playlist ID and rebuilds a clean URL to standardize it.
@@ -210,13 +210,14 @@ if __name__ == "__main__":
                 
                         # If the folder already exists, suggest to use Update to avoid duplication
                         if os.path.isdir(folder_name):
-                            print(f"\nThe folder '{folder_name}' already exists. Use the Update option to update it.", end="\n")
-                            sleep(1.5)
+                            print(f"\nThe folder '{folder_name}' already exists. Use the Update option to update it.\nPress 'enter' to continue")
+                            input()
                             continue
 
                         # Create destination folder and start downloading playlist entries
                         os.makedirs(folder_name, exist_ok=True)
                         # Delegate the resilient per-entry download to core.download_playlist
+                        print("\n")
                         errors.extend(core.download_playlist(url, folder_name, playlist_title, format=chosen_format))
 
                     # Report download errors (if any)
@@ -238,13 +239,13 @@ if __name__ == "__main__":
                     errors = []
 
                     for url in playlist_url:
-                        online_info = core.fetch_online_playlist_info(url)
-                        if not online_info:
+                        info = core.fetch_online_playlist_info(url)
+                        if not info:
                             errors.append(("Info Error", f"Impossibile ottenere informazioni per l'URL: {url}"))
                             continue
 
-                        playlist_title = online_info['title']
-                        online_videos = online_info['videos']
+                        playlist_title = info['title']
+                        online_videos = info['videos']
                         folder_name = sanitize_filename(playlist_title)
 
                         # If local folder doesn't exist, cannot update: ask user to download first
