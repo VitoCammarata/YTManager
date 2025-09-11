@@ -144,25 +144,27 @@ def get_options(format: str, quality: Optional[str]) -> dict:
     if format in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
         audio_quality = "bestaudio/best"
 
-        postprocessors = [
-            {"key": "EmbedThumbnail"},
+        audio_postprocessors = [
             {"key": "FFmpegMetadata"}
         ]
+
+        if format not in ['opus', 'wav']:
+            audio_postprocessors.append({"key": "EmbedThumbnail"})
         
         if format == 'mp3':
-            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"})
+            audio_postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"})
         elif format == 'm4a':
-            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"})
+            audio_postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "m4a", "preferredquality": "5"})
         elif format == 'flac':
-            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "flac"})
+            audio_postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "flac"})
         elif format == 'opus':
-            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "opus"})
+            audio_postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "opus"})
         elif format == 'wav':
-            postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "wav"})
+            audio_postprocessors.insert(0, {"key": "FFmpegExtractAudio", "preferredcodec": "wav"})
             
         return {
             "format": audio_quality,
-            "postprocessors": postprocessors
+            "postprocessors": audio_postprocessors
         }
 
     # --- GROUP 2: Video Formats ---
@@ -177,14 +179,16 @@ def get_options(format: str, quality: Optional[str]) -> dict:
             video_quality = f"bestvideo[height<={quality}][ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best"
         else: # mkv
             video_quality = f"bestvideo[height<={quality}]+bestaudio/best"
+
+        video_postprocessors = [{"key": "FFmpegMetadata"}]
+
+        if format in ['mp4', 'mkv']:
+            video_postprocessors.append({"key": "EmbedThumbnail"})
         
         return {
             "format": video_quality,
             "merge_output_format": format if format != 'mp4' else None,
-            "postprocessors": [
-                {"key": "EmbedThumbnail"},
-                {"key": "FFmpegMetadata"}, 
-            ]
+            "postprocessors": video_postprocessors
         }
     
     # --- Fallback ---
