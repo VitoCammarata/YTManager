@@ -10,16 +10,15 @@ It provides two main functionalities:
 A hidden JSON file is used in each playlist folder to maintain state and
 track for the correct order of the tracks.
 """
-import os
-import shutil
+import os, shutil
 import yt_dlp
 from pathvalidate import sanitize_filename
 from time import sleep
 import core
-from core import yt_metadata_config
+from core import yt_config
 from core import PLAYLIST_URL_TYPE, VIDEO_URL_TYPE1, VIDEO_URL_TYPE2
 
-key_words = [("download", "Download"), ("update", "Update")]
+utility_words = [("download", "Download"), ("update", "Update")]
 
 def clear_screen():
     os.system("cls") if os.name == "nt" else os.system("clear")    
@@ -111,7 +110,7 @@ def ask_for_video_quality() -> str:
         
     
 
-def playlist_urls_aquisition(user_choice: str) -> list[str]:
+def playlists_urls_aquisition(user_choice: str) -> list[str]:
     """
     Interactively prompts the user to enter one or more YouTube playlist URLs,
     validating and cleaning them.
@@ -123,30 +122,30 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
         A list of cleaned, standardized YouTube playlist URLs.
     """
     def check_url(user_input: str):
-        if user_input not in local_playlist_url:
-            local_playlist_url.append(user_input)
+        if user_input not in playlists_urls:
+            playlists_urls.append(user_input)
         else:
             print("\nThis URL has already been added. Press Enter to continue...")
             input()
         clear_screen()
 
-    local_playlist_url = []
+    playlists_urls = []
 
-    key_word = key_words[0 if user_choice == "1" else 1][0]
+    key_word = utility_words[0 if user_choice == "1" else 1][0]
 
     while True:
         columns = shutil.get_terminal_size().columns
         print("\n" + "### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
         print(f"Insert your playlist URLs: (Insert '{key_word}' to start the {key_word})\n")
 
-        if len(local_playlist_url):
-            for j, url in enumerate(local_playlist_url):
+        if len(playlists_urls):
+            for j, url in enumerate(playlists_urls):
                 print(f"URL {j+1}: {url}")
 
         user_input = input(f"Input: ").strip()
-        if user_input.lower() == key_words[0][0] and user_choice == "1" or user_input.lower() == key_words[1][0] and user_choice == "2":
+        if user_input.lower() == utility_words[0][0] and user_choice == "1" or user_input.lower() == utility_words[1][0] and user_choice == "2":
             clear_screen()
-            return local_playlist_url
+            return playlists_urls
         
         # Extracts the playlist ID and rebuilds a clean URL to standardize it.
         # This normalizes many possible YouTube playlist url formats to a single canonical form.
@@ -157,7 +156,7 @@ def playlist_urls_aquisition(user_choice: str) -> list[str]:
             input()
             clear_screen()
 
-def video_urls_aquisition() -> list[str]:
+def videos_urls_aquisition() -> list[str]:
     """
     Interactively prompts the user to enter one or more YouTube video URLs,
     validating and normalizing them.
@@ -172,28 +171,28 @@ def video_urls_aquisition() -> list[str]:
         playlist URLs when collecting single-video downloads.
     """
     def check_url(user_input: str):
-        if user_input not in local_videos_url:
-            local_videos_url.append(user_input)
+        if user_input not in videos_url:
+            videos_url.append(user_input)
         else:
             print("\nThis URL has already been added. Press Enter to continue...")
             input()
         clear_screen()
 
-    local_videos_url = []
+    videos_url = []
 
     while True:
         columns = shutil.get_terminal_size().columns
         print("\n" + "### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
         print("Insert your videos URLs: (Insert 'download' to start the download)\n")
 
-        if len(local_videos_url):
-            for j, url in enumerate(local_videos_url):
+        if len(videos_url):
+            for j, url in enumerate(videos_url):
                 print(f"URL {j+1}: {url}")
 
         user_input = input(f"Input: ").strip()
         if user_input.lower() == "download":
             clear_screen()
-            return local_videos_url
+            return videos_url
     
         # Extracts the video ID and rebuilds a clean URL to standardize it.
         # Note: the check avoids interpreting playlist links as single-video downloads.
@@ -246,20 +245,20 @@ if __name__ == "__main__":
                 # --- DOWNLOAD PLAYLIST ---
                 if user_choice == "1":
                     clear_screen()
-                    playlist_url = playlist_urls_aquisition(user_choice)
+                    playlists_urls = playlists_urls_aquisition(user_choice)
                     chosen_format = ask_for_format()
 
                     chosen_quality = None
                     if chosen_format not in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
                         chosen_quality = ask_for_video_quality()
 
-                    print(f"{key_words[0][1]}...\n")
+                    print(f"{utility_words[0][1]}...\n")
 
                     errors = []
 
-                    for url in playlist_url:
+                    for url in playlists_urls:
                         # Fetch playlist metadata (title) quickly using config1
-                        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
+                        with yt_dlp.YoutubeDL(yt_config) as ydl:
                             info = ydl.extract_info(url, download=False)
                             if info:
                                 playlist_title = info.get('title', 'Unknown Playlist')
@@ -274,7 +273,7 @@ if __name__ == "__main__":
                         # Create destination folder and start downloading playlist entries
                         os.makedirs(folder_name, exist_ok=True)
                         # Delegate the resilient per-entry download to core.download_playlist
-                        errors.extend(core.download_playlist(url, folder_name, playlist_title, chosen_format, chosen_quality))
+                        errors.extend(core.download_playlists(url, folder_name, playlist_title, chosen_format, chosen_quality))
 
                     # Report download errors (if any)
                     if errors:
@@ -291,19 +290,19 @@ if __name__ == "__main__":
                 # --- UPDATE PLAYLIST ---
                 elif user_choice == "2":
                     clear_screen()
-                    playlist_url = playlist_urls_aquisition(user_choice)
+                    playlists_urls = playlists_urls_aquisition(user_choice)
                     errors = []
 
-                    print(f"{key_words[1][1]}...\n")
+                    print(f"{utility_words[1][1]}...\n")
 
-                    for url in playlist_url:
+                    for url in playlists_urls:
                         info = core.fetch_online_playlist_info(url)
                         if not info:
                             errors.append(("Info Error", f"Impossibile ottenere informazioni per l'URL: {url}"))
                             continue
 
                         playlist_title = info['title']
-                        online_videos = info['videos']
+                        youtube_videos = info['videos']
                         folder_name = sanitize_filename(playlist_title)
 
                         # If local folder doesn't exist, cannot update: ask user to download first
@@ -313,16 +312,16 @@ if __name__ == "__main__":
                             continue
                         
                         try:
-                            errors.extend(core.cleanup_deleted_videos(online_videos, playlist_title, folder_name))
+                            errors.extend(core.cleanup_deleted_videos(youtube_videos, playlist_title, folder_name))
 
-                            errors.extend(core.reorder_local_videos(online_videos, playlist_title, folder_name))
+                            errors.extend(core.reorder_local_videos(youtube_videos, playlist_title, folder_name))
 
-                            media_format = core.detect_format(folder_name)
-                            if media_format:
-                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, media_format))
+                            files_format = core.detect_format(folder_name)
+                            if files_format:
+                                errors.extend(core.download_new_videos(youtube_videos, playlist_title, folder_name, files_format))
                             else:
-                                media_format = ask_for_format()
-                                errors.extend(core.download_new_videos(online_videos, playlist_title, folder_name, media_format))
+                                files_format = ask_for_format()
+                                errors.extend(core.download_new_videos(youtube_videos, playlist_title, folder_name, files_format))
 
 
                         except Exception as e:
@@ -358,19 +357,19 @@ if __name__ == "__main__":
         # --- VIDEOS MANAGEMENT ---
         elif current_state == "videos_download":
             clear_screen()
-            video_url = video_urls_aquisition()
+            videos_urls = videos_urls_aquisition()
             chosen_format = ask_for_format()
 
             chosen_quality = None
             if chosen_format not in ['mp3', 'm4a', 'flac', 'opus', 'wav']:
                 chosen_quality = ask_for_video_quality()
 
-            print(f"{key_words[0][1]}...\n")
+            print(f"{utility_words[0][1]}...\n")
 
             errors = []
 
             # Delegate single-video downloads to core.download_video
-            errors.extend(core.download_video(video_url, chosen_format, chosen_quality))
+            errors.extend(core.download_video(videos_urls, chosen_format, chosen_quality))
 
             if errors:
                 print("\nSome errors occurred during the download:")

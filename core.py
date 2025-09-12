@@ -1,14 +1,13 @@
 import os, sys, shutil, json
+import appdirs, subprocess
 import yt_dlp
 from typing import Optional, Any
 from pathvalidate import sanitize_filename
-import appdirs
-import subprocess
 
 # --- Constants and Configurations ---
 
 # yt-dlp configuration for fetching playlist metadata quickly
-yt_metadata_config = {
+yt_config = {
     "extract_flat": True,
     "quiet": True,
     "noplaylistunavailablevideos": True
@@ -103,8 +102,8 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
         an empty 'entries' list if fetching fails.
     """
     try:
-        # Use the lightweight yt_metadata_config to fetch only metadata (no downloads)
-        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
+        # Use the lightweight yt_config to fetch only metadata (no downloads)
+        with yt_dlp.YoutubeDL(yt_config) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
             return info if info else {"entries": []}
     except Exception as e:
@@ -251,10 +250,10 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
         A list of errors as tuples (video_title, error_message).
     """
     # Temporary folder for yt-dlp downloads to avoid partial files in target
-    tmp_folder = get_temp_dir("video download")
+    temp_folder = get_temp_dir("video download")
     errors = []
 
-    with yt_dlp.YoutubeDL(make_config(tmp_folder, format, quality)) as ydl:
+    with yt_dlp.YoutubeDL(make_config(temp_folder, format, quality)) as ydl:
         for url in video_url:
             try:
                 # Try to obtain metadata first to have a readable error context
@@ -267,12 +266,12 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
                 # Perform the actual download; any postprocessors run automatically
                 ydl.download([url])
 
-                downloaded_video = os.listdir(tmp_folder)
+                downloaded_video = os.listdir(temp_folder)
                 if not downloaded_video:
                     # If no file found, treat as a recoverable error for this entry
                     raise FileNotFoundError(f"{format.upper()} not found in temp folder")
                 
-                video_path = os.path.join(tmp_folder, downloaded_video[0])
+                video_path = os.path.join(temp_folder, downloaded_video[0])
 
                 quality_str = ""
                 if format in ['mp4', 'mkv', 'webm']:
@@ -289,7 +288,7 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
     
     return errors
 
-def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
+def download_playlists(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
     """
     Download a playlist entry-by-entry in a resilient manner.
 
@@ -306,7 +305,7 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
         A list of errors as tuples (title, error_message).
     """
     # Temporary folder for yt-dlp downloads to avoid partial files in target
-    tmp_folder = get_temp_dir(playlist_title)
+    temp_folder = get_temp_dir(playlist_title)
 
     titles_map = {
         "quality": quality,
@@ -319,31 +318,31 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
 
     # Iterate entries in playlist order and download one by one
     for idx, entry in enumerate(info.get('entries', [])): 
-        with yt_dlp.YoutubeDL(make_config(tmp_folder, format, quality)) as ydl:
+        with yt_dlp.YoutubeDL(make_config(temp_folder, format, quality)) as ydl:
             try:
                 # Download the single entry into the temporary folder
                 ydl.download([entry.get('url')])
 
                 # yt-dlp output filename may vary depending on metadata; find the downloaded file
-                downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
+                downloaded_files = [f for f in os.listdir(temp_folder) if f.endswith(format)]
                 if not downloaded_files:
                     # If no file found, treat as a recoverable error for this entry
                     raise FileNotFoundError(f"{format.upper()} not found in temp folder")
 
-                original_filename = os.path.join(tmp_folder, downloaded_files[0])
+                original_filename_path = os.path.join(temp_folder, downloaded_files[0])
                 video_id = entry.get('id')
                 title = entry.get('title', 'Unknown')
 
                 quality_str = ""
                 if format in ['mp4', 'mkv', 'webm']:
-                    quality_str = get_actual_file_quality(original_filename)
+                    quality_str = get_actual_file_quality(original_filename_path)
 
                 # Sanitize title for filesystem, and add numeric prefix to preserve order
                 sanitized_title = sanitize_filename(title)
                 final_title = os.path.join(folder_name, f"{idx+1} - {sanitized_title}{quality_str}.{format}")
 
                 # Move the file atomically into the destination folder
-                os.replace(original_filename, final_title)
+                os.replace(original_filename_path, final_title)
 
                 # Build/update the titles map
                 video_details = {
@@ -368,7 +367,7 @@ def download_playlist(playlist_url: str, folder_name: str, playlist_title: str, 
 
     # Attempt to remove temporary folder and report errors if unable
     try:
-        shutil.rmtree(tmp_folder)
+        shutil.rmtree(temp_folder)
     except Exception as e:
         errors.append(("temp cleanup failed", str(e)))
 
@@ -386,8 +385,8 @@ def fetch_online_playlist_info(playlist_url: str) -> Optional[dict]:
         (id, title, index), or None if fetching fails.
     """
     try:
-        # Use the lightweight yt_metadata_config to fetch only metadata
-        with yt_dlp.YoutubeDL(yt_metadata_config) as ydl:
+        # Use the lightweight yt_config to fetch only metadata
+        with yt_dlp.YoutubeDL(yt_config) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
 
             # Check if yt-dlp returned valid information
@@ -481,8 +480,8 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
     if not videos_to_delete_ids:
         return errors
 
-    media_format = detect_format(folder_name)
-    if not media_format:
+    file_format = detect_format(folder_name)
+    if not file_format:
         errors.append(("Cleanup Warning", "Could not detect media format. Skipping cleanup."))
         return errors
 
@@ -493,12 +492,12 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
 
         index = video_info.get("playlist_index")
         sanitized_title = video_info.get("sanitized_title")
-        filename_to_delete = f"{index} - {sanitized_title}.{media_format}"
-        file_path = os.path.join(folder_name, filename_to_delete)
+        filename_to_delete = f"{index} - {sanitized_title}.{file_format}"
+        file_path_to_delete = os.path.join(folder_name, filename_to_delete)
 
         try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            if os.path.exists(file_path_to_delete):
+                os.remove(file_path_to_delete)
 
             del local_data["files"][video_id]
 
@@ -541,14 +540,14 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
         return errors
 
     # Create a mapping of online IDs to their new index for quick lookup
-    online_order_map = {video['id']: video['index'] for video in online_videos}
+    youtube_video_map = {video['id']: video['index'] for video in online_videos}
     
     # Identify files that need renaming
     files_to_rename = []
     for video_id, video_info in local_data.get("files", {}).items():
-        if video_id in online_order_map:
+        if video_id in youtube_video_map:
             current_index = video_info.get("playlist_index")
-            new_index = online_order_map[video_id]
+            new_index = youtube_video_map[video_id]
             if current_index != new_index:
                 files_to_rename.append({
                     'id': video_id,
@@ -569,21 +568,21 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
             errors.append(("Backup Error", backup_error))
             return errors
 
-        media_format = detect_format(folder_name)
-        if not media_format:
+        file_format = detect_format(folder_name)
+        if not file_format:
             errors.append(("Reorder Warning", "Could not detect media format. Skipping reorder."))
             return errors
 
-        for task in files_to_rename:
-            old_filename = f"{task['old_index']} - {task['sanitized_title']}.{media_format}"
-            new_filename = f"{task['new_index']} - {task['sanitized_title']}.{media_format}"
+        for file in files_to_rename:
+            old_filename = f"{file['old_index']} - {file['sanitized_title']}.{file_format}"
+            new_filename = f"{file['new_index']} - {file['sanitized_title']}.{file_format}"
             old_filepath = os.path.join(folder_name, old_filename)
             new_filepath = os.path.join(folder_name, new_filename)
             
             if os.path.exists(old_filepath):
                 os.rename(old_filepath, new_filepath)
                 # Update the index in our local data
-                local_data["files"][task['id']]['playlist_index'] = task['new_index']
+                local_data["files"][file['id']]['playlist_index'] = file['new_index']
                 # Atomically save the state file
                 with open(state_path, "w", encoding="utf-8") as f:
                     json.dump(local_data, f, ensure_ascii=False, indent=4)
@@ -627,7 +626,7 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
         online_videos: The list of video dictionaries from fetch_online_playlist_info.
         playlist_title: The title of the playlist.
         folder_name: The path to the local media folder.
-        media_format: The desired output format (e.g., "mp3").
+        file_format: The desired output format (e.g., "mp3").
 
     Returns:
         A list of non-critical errors encountered during the download process.
@@ -653,8 +652,8 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
     # Step 3: Set up for download
     quality = local_data.get("quality", None)
 
-    tmp_folder = get_temp_dir(playlist_title)
-    ydl_opts = make_config(tmp_folder, format, quality)
+    temp_folder = get_temp_dir(playlist_title)
+    ydl_opts = make_config(temp_folder, format, quality)
     
     # Step 4: Perform atomic download operations
     for video in new_videos:
@@ -667,18 +666,18 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
                 ydl.download([video_url])
 
             # Find the downloaded file in the temp folder
-            downloaded_files = [f for f in os.listdir(tmp_folder) if f.endswith(format)]
+            downloaded_files = [f for f in os.listdir(temp_folder) if f.endswith(format)]
             if not downloaded_files:
                 raise FileNotFoundError(f"Downloaded file with format .{format} not found in temp folder.")
 
-            original_filepath = os.path.join(tmp_folder, downloaded_files[0])
+            original_filename_path = os.path.join(temp_folder, downloaded_files[0])
             
             # b. Move the file to the final destination
             sanitized_title = sanitize_filename(video_title)
             final_filename = f"{video['index']} - {sanitized_title}.{format}"
-            final_filepath = os.path.join(folder_name, final_filename)
+            final_file_path = os.path.join(folder_name, final_filename)
             
-            shutil.move(original_filepath, final_filepath)
+            shutil.move(original_filename_path, final_file_path)
 
             # c. Add the new video to our local data
             local_data["files"][video['id']] = {
@@ -696,13 +695,13 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
         except Exception as e:
             errors.append(("Download Error", f"Failed to download '{video_title}': {e}"))
             # Clean up the temp folder to avoid issues with the next video
-            for f in os.listdir(tmp_folder):
-                os.remove(os.path.join(tmp_folder, f))
+            for f in os.listdir(temp_folder):
+                os.remove(os.path.join(temp_folder, f))
             continue
 
     # Step 5: Final cleanup
     try:
-        shutil.rmtree(tmp_folder)
+        shutil.rmtree(temp_folder)
     except Exception as e:
         errors.append(("Temp Cleanup Failed", str(e)))
 
