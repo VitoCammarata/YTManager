@@ -1,15 +1,19 @@
 """
-This script allows downloading and synchronizing YouTube playlists as local MP3 files.
+This script allows downloading and synchronizing YouTube playlists as local media files.
 
-It provides two main functionalities:
-1.  Download: Fetches an entire playlist, converts videos to MP3, and adds
-    ID3 tags. (Resilient version)
-2.  Update: Syncs a local folder with its corresponding YouTube playlist,
-    handling new videos, deleted videos, and reordering. (Original version)
+Key features:
+1. Download: Downloads entire playlists or single videos, converting them to various
+   audio/video formats with customizable quality settings
+2. Update: Syncs local playlist folders with YouTube, handling:
+   - New videos added to the playlist
+   - Videos removed from the playlist
+   - Changes in video order
+   - Consistent format detection and matching
 
-A hidden JSON file is used in each playlist folder to maintain state and
-track for the correct order of the tracks.
+The script maintains a hidden JSON file in each playlist folder to track video order
+and playlist state.
 """
+
 import os, shutil
 import yt_dlp
 from pathvalidate import sanitize_filename
@@ -18,6 +22,7 @@ import core
 from core import yt_config
 from core import PLAYLIST_URL_TYPE, VIDEO_URL_TYPE1, VIDEO_URL_TYPE2
 
+# Constants for common text pairs used in the UI
 utility_words = [("download", "Download"), ("update", "Update")]
 
 def clear_screen():
@@ -25,14 +30,15 @@ def clear_screen():
 
 def ask_for_format() -> str:
     """
-    Prompt the user to choose a download format.
+    Prompts user to select a download format from available options.
 
     Returns:
-        The chosen format as a lowercase string (e.g. "mp3", "m4a", "mp4").
+        str: The chosen format identifier (mp3, m4a, flac, opus, wav, mp4, mkv, webm)
 
-    Behavior:
-        Clears the terminal, shows available formats, validates input and
-        repeats until a supported format is entered.
+    Notes:
+        - Displays a formatted menu with format descriptions
+        - Validates input and repeats prompt until valid selection
+        - Supports both audio and video formats
     """
     clear_screen()  
 
@@ -47,7 +53,6 @@ def ask_for_format() -> str:
         "8": "webm"
     }
   
-
     while True:
         print("\nChose a format for the download:")
         print("1: mp3  (Audio, max compatibility)")
@@ -71,10 +76,15 @@ def ask_for_format() -> str:
         
 def ask_for_video_quality() -> str:
     """
-    Prompts the user to choose a specific video resolution.
+    Prompts user to select maximum video resolution for downloads.
 
     Returns:
-        The chosen resolution as a string (e.g., "1080", "720").
+        str: The chosen resolution in pixels (e.g. "1080", "720")
+
+    Notes:
+        - Only called for video format selections
+        - If requested quality is unavailable, falls back to next best quality
+        - Validates input and repeats prompt until valid selection
     """
     clear_screen()
 
@@ -112,14 +122,19 @@ def ask_for_video_quality() -> str:
 
 def playlists_urls_aquisition(user_choice: str) -> list[str]:
     """
-    Interactively prompts the user to enter one or more YouTube playlist URLs,
-    validating and cleaning them.
+    Collects and validates YouTube playlist URLs from user input.
 
     Args:
-        user_choice: The main menu choice ("1" or "2") to customize prompts.
+        user_choice: Main menu selection ("1" for download, "2" for update)
 
     Returns:
-        A list of cleaned, standardized YouTube playlist URLs.
+        list[str]: List of normalized YouTube playlist URLs
+
+    Notes:
+        - Standardizes URLs to a canonical format
+        - Prevents duplicate entries
+        - Continues collecting until user enters "download" or "update"
+        - Validates URL format and presence of playlist ID
     """
     def check_url(user_input: str):
         if user_input not in playlists_urls:
@@ -158,17 +173,17 @@ def playlists_urls_aquisition(user_choice: str) -> list[str]:
 
 def videos_urls_aquisition() -> list[str]:
     """
-    Interactively prompts the user to enter one or more YouTube video URLs,
-    validating and normalizing them.
+    Collects and validates YouTube single video URLs from user input.
 
     Returns:
-        A list of cleaned, standardized YouTube video URLs.
+        list[str]: List of normalized YouTube video URLs
 
     Notes:
-        This function accepts both standard "watch?v=" URLs and short youtu.be
-        links. It collects multiple URLs until the user types 'download'.
-        It relies on the outer-scope `user_choice` variable to avoid including
-        playlist URLs when collecting single-video downloads.
+        - Accepts both standard watch?v= URLs and shortened youtu.be links
+        - Converts all URLs to canonical watch?v= format
+        - Prevents duplicate entries
+        - Continues collecting until user enters "download"
+        - Excludes playlist URLs to avoid confusion
     """
     def check_url(user_input: str):
         if user_input not in videos_url:
@@ -207,14 +222,17 @@ def videos_urls_aquisition() -> list[str]:
             clear_screen()
         
 
+# Main program loop with state machine architecture
 if __name__ == "__main__":
     current_state = "main_menu"
     clear_screen()
 
     while True:
+    # State machine implementation for navigation between different menus
+    # States: main_menu, playlist_menu, videos_download, delete_data, exit
         columns = shutil.get_terminal_size().columns
 
-        # --- MAIN MENU --- 
+        # --- MAIN MENU STATE ---
         if current_state == "main_menu":
             clear_screen()
             print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
@@ -234,8 +252,10 @@ if __name__ == "__main__":
                 input()
                 clear_screen()
 
-        # --- PLAYLIST MANAGEMENT ---
+        # --- PLAYLIST MANAGEMENT STATE ---
         elif current_state == "playlist_menu":
+            # Download: Creates new playlist folders with media files
+            # Update: Syncs existing folders with YouTube playlist changes
             while True:
                 clear_screen()
                 print("### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
@@ -354,8 +374,9 @@ if __name__ == "__main__":
                     clear_screen()
                     continue
 
-        # --- VIDEOS MANAGEMENT ---
+        # --- VIDEOS MANAGEMENT STATE ---
         elif current_state == "videos_download":
+            # Handles downloading individual videos without playlist organization
             clear_screen()
             videos_urls = videos_urls_aquisition()
             chosen_format = ask_for_format()
@@ -381,7 +402,9 @@ if __name__ == "__main__":
 
             current_state = "main_menu"
 
+        # --- DATA CLEANUP STATE ---
         elif current_state == "delete_data":
+            # Provides secure way to remove application data while preserving media files
             while True:
                 clear_screen()
                 print("\nWARNING: This will permanently delete all saved playlist states,")

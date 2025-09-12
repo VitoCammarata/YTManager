@@ -5,34 +5,51 @@ from typing import Optional, Any
 from pathvalidate import sanitize_filename
 
 # --- Constants and Configurations ---
-
 # yt-dlp configuration for fetching playlist metadata quickly
 yt_config = {
     "extract_flat": True,
     "quiet": True,
     "noplaylistunavailablevideos": True
 }
+
+# Standard YouTube URL patterns
 PLAYLIST_URL_TYPE = "https://www.youtube.com/playlist?list="
 VIDEO_URL_TYPE1 = "https://www.youtube.com/watch?v="
 VIDEO_URL_TYPE2 = "https://youtu.be/"
 APP_NAME = "YouTubePlaylistManager"
 
+# --- Path Management Functions ---
 def get_app_data_dir() -> str:
+    """
+    Creates and returns the application's data directory path.
+    Uses platform-specific locations via appdirs.
+    """
     data_dir = appdirs.user_data_dir(appname=APP_NAME)
     os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
 def get_playlist_data_dir(playlist_title: str) -> str:
+    """
+    Creates and returns a dedicated data directory for a specific playlist.
+    """
     sanitize_title = sanitize_filename(playlist_title)
     playlist_dir = os.path.join(get_app_data_dir(), sanitize_title)
     os.makedirs(playlist_dir, exist_ok=True)
     return playlist_dir
 
 def get_playlist_state_path(playlist_title: str) -> str:
+    """
+    Returns the path to the state.json file for a playlist.
+    This file tracks video order and metadata.
+    """
     playlist_dir = get_playlist_data_dir(playlist_title)
     return os.path.join(playlist_dir, "state.json")
 
 def get_temp_dir(playlist_title: str) -> str:
+    """
+    Creates a clean temporary directory for download operations.
+    Removes any existing temp dir before creating a new one.
+    """
     playlist_dir = get_playlist_data_dir(playlist_title)
     temp_dir = os.path.join(playlist_dir, "temp")
     if os.path.isdir(temp_dir):
@@ -40,15 +57,21 @@ def get_temp_dir(playlist_title: str) -> str:
     os.makedirs(temp_dir, exist_ok=True)
     return temp_dir
 
+# --- Media Operations ---
 def get_actual_file_quality(file_path: str) -> str:
     """
-    Uses ffprobe to inspect a media file and get its actual quality.
+    Inspects media file metadata to determine actual quality.
 
     Args:
-        file_path: The full path to the media file.
+        file_path: Path to the media file.
 
     Returns:
-        A formatted quality string (e.g., "(1080p)", "(128kbps)") or an empty string.
+        str: Formatted quality string (e.g. "(1080p)", "(128kbps)") or empty string on error.
+
+    Notes:
+        - Uses ffprobe to extract stream information
+        - Handles both video (resolution) and audio (bitrate) formats
+        - Returns empty string on any error to avoid breaking the program
     """
     try:
         # Questo comando chiede a ffprobe di mostrare le info sui flussi (streams) in formato JSON
@@ -98,8 +121,11 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
         playlist_url: YouTube playlist URL.
 
     Returns:
-        The info dictionary returned by yt-dlp, or a safe structure with
-        an empty 'entries' list if fetching fails.
+        dict: Dictionary containing playlist metadata and entries list.
+              Returns {"entries": []} if fetching fails.
+
+    Raises:
+        Exception: If playlist info cannot be fetched.
     """
     try:
         # Use the lightweight yt_config to fetch only metadata (no downloads)
@@ -111,10 +137,14 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
     
 def get_ffmpeg_path() -> Optional[str]:
     """
-    If running as a PyInstaller bundle, return the path to the bundled ffmpeg.
+    Locates bundled ffmpeg executable when running as PyInstaller package.
 
     Returns:
-        Full path to the ffmpeg executable when bundled, otherwise None.
+        str: Path to bundled ffmpeg if available, None otherwise.
+    
+    Notes:
+        - Only relevant when app is packaged with PyInstaller
+        - Handles both Windows and Linux paths
     """
     # When packaged by PyInstaller, sys.frozen is True and _MEIPASS points to a temp folder
     if getattr(sys, 'frozen', False):
@@ -134,8 +164,19 @@ def get_ffmpeg_path() -> Optional[str]:
 
 def get_options(format: str, quality: Optional[str]) -> dict:
     """
-    Builds yt-dlp option fragments for a given format and quality.
-    Audio is always best quality; video quality is user-defined.
+    Builds yt-dlp configuration for specific format and quality requirements.
+
+    Args:
+        format: Output format (mp3, mp4, etc.)
+        quality: Video quality in pixels (1080, 720, etc.)
+
+    Returns:
+        dict: Complete yt-dlp options dictionary.
+
+    Notes:
+        - Audio formats always use best quality
+        - Video quality falls back to next best available
+        - Handles thumbnail embedding and metadata
     """
     format = format.lower().strip()
 
@@ -290,19 +331,28 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
 
 def download_playlists(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
     """
-    Download a playlist entry-by-entry in a resilient manner.
+    Downloads an entire playlist with error recovery and state tracking.
 
-    The function downloads each item to a temporary folder, moves the file into
-    the destination with a numbered name, and updates the JSON state file after
-    each successful download so the process can be resumed if interrupted.
+    The function:
+    1. Downloads each video to a temporary location
+    2. Moves successful downloads to final destination
+    3. Updates state file after each video
+    4. Tracks errors without stopping the process
 
     Args:
-        playlist_url: URL of the YouTube playlist.
-        folder_name: Destination folder for the downloaded files.
-        format: Desired output format.
+        playlist_url: YouTube playlist URL
+        folder_name: Target folder for downloads
+        playlist_title: Title of the playlist
+        format: Output format for media files
+        quality: Video quality (if applicable)
 
     Returns:
-        A list of errors as tuples (title, error_message).
+        list[tuple[str, str]]: List of (video_title, error_message) for failed downloads
+
+    Notes:
+        - Uses atomic operations for file moves
+        - Maintains state file for resumability
+        - Cleans up temp files even on failure
     """
     # Temporary folder for yt-dlp downloads to avoid partial files in target
     temp_folder = get_temp_dir(playlist_title)
@@ -421,14 +471,18 @@ def fetch_online_playlist_info(playlist_url: str) -> Optional[dict]:
     
 def detect_format(folder_name: str) -> Optional[str]:
     """
-    Scans a folder to detect the media file format (extension) of the first found file.
+    Scans a folder to detect the media file format of existing files.
 
     Args:
-        folder_name: The path to the folder to scan.
+        folder_name: Path to the folder to scan.
 
     Returns:
-        The file extension (e.g., "mp3", "m4a") as a string, or None if no
-        media files are found.
+        str: File extension (e.g. "mp3", "m4a") or None if no media files found.
+
+    Notes:
+        - Only looks for supported media formats
+        - Returns the format of the first valid file found
+        - Returns None if folder is empty or contains no media files
     """
     # A list of common media extensions to look for.
     # This avoids picking up other files like .txt, .json, .jpg etc.
@@ -473,18 +527,22 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
         # No state file, nothing to clean up.
         return errors
 
+    # Compare online and local video IDs to find deleted videos
     online_ids = {video['id'] for video in online_videos}
     local_ids = list(local_data.get("files", {}).keys())
     videos_to_delete_ids = [vid_id for vid_id in local_ids if vid_id not in online_ids]
 
+    # Skip cleanup if no videos need deletion
     if not videos_to_delete_ids:
         return errors
 
+    # Detect media format from existing files
     file_format = detect_format(folder_name)
     if not file_format:
         errors.append(("Cleanup Warning", "Could not detect media format. Skipping cleanup."))
         return errors
 
+    # Process each deleted video
     for video_id in videos_to_delete_ids:
         video_info = local_data["files"].get(video_id)
         if not video_info:
@@ -539,10 +597,10 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
         # No state file, nothing to reorder.
         return errors
 
-    # Create a mapping of online IDs to their new index for quick lookup
+    # Create lookup map for new video positions
     youtube_video_map = {video['id']: video['index'] for video in online_videos}
     
-    # Identify files that need renaming
+    # Find files that need reordering
     files_to_rename = []
     for video_id, video_info in local_data.get("files", {}).items():
         if video_id in youtube_video_map:
@@ -708,16 +766,35 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
     return errors
 
 def folder_backup(folder_name: str, playlist_title: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Creates a backup copy of a playlist folder.
+
+    Args:
+        folder_name: Path to the folder to backup
+        playlist_title: Title of the playlist (used for backup location)
+
+    Returns:
+        tuple: (backup_path, error_message)
+               backup_path - Path to created backup or None on failure
+               error_message - Error description or None on success
+
+    Notes:
+        - Removes any existing backup before creating new one
+        - Uses playlist's data directory for backup storage
+        - Performs complete folder copy including all files
+    """
     playlist_data_dir = get_playlist_data_dir(playlist_title)
     
     backup_path = os.path.join(playlist_data_dir, "backup")
 
+    # Remove existing backup if present
     if os.path.isdir(backup_path):
         try:
             shutil.rmtree(backup_path)
         except Exception as e:
             return None, f"Could not remove old backup folder: {e}"
         
+    # Create new backup
     try:
         shutil.copytree(folder_name, backup_path)
         return backup_path, None
@@ -726,12 +803,17 @@ def folder_backup(folder_name: str, playlist_title: str) -> tuple[Optional[str],
     
 def delete_app_data() -> tuple[bool, str]:
     """
-    Finds and deletes the entire application data directory.
-
-    This is a destructive operation and should be used with caution.
+    Safely removes all application data while preserving media files.
 
     Returns:
-        A tuple containing a success boolean and a message string.
+        tuple: (success, message)
+               success - True if deletion successful, False otherwise
+               message - Description of operation result or error
+
+    Notes:
+        - Deletes only application data directory
+        - Downloaded media files are not affected
+        - Returns success even if directory doesn't exist
     """
     try:
         data_dir = get_app_data_dir()
