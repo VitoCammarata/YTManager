@@ -382,24 +382,29 @@ if __name__ == "__main__":
             current_state = "main_menu"
 
         elif current_state == "delete_data":
-            clear_screen()
-            print("\nWARNING: This will permanently delete all saved playlist states,")
-            print("backups, and temporary files associated with this application.")
-            print("This action CANNOT be undone.")
-            print("\nYour downloaded media files (mp3, mp4, etc.) will NOT be affected,")
-            print("but the application may not work properly anymore.")   
+            while True:
+                clear_screen()
+                print("\nWARNING: This will permanently delete all saved playlist states,")
+                print("backups, and temporary files associated with this application.")
+                print("This action CANNOT be undone.")
+                print("\nYour downloaded media files (mp3, mp4, etc.) will NOT be affected,")
+                print("but the application may not work properly anymore.")   
 
-            confirm = input("\nAre you absolutely sure you want to proceed? (Type 'yes' to confirm, 'no' to exit): ").strip().lower()
-
-            if confirm == 'yes':
-                # Call the core function to perform the deletion
-                success, message = core.delete_app_data()
-                print(f"\n{message}")
-            else:
-                print("\nOperation cancelled. No data has been deleted.")
+                confirm = input("\nAre you absolutely sure you want to proceed? (Type 'yes' to confirm, 'no' to exit): ").strip().lower()
+                if confirm == 'yes':
+                    # Call the core function to perform the deletion
+                    success, message = core.delete_app_data()
+                    print(f"\n{message}\nPress 'Enter' to return to the main menu")
+                    input()
+                    break    
+                elif confirm == "no":
+                    print("\nOperation cancelled. No data has been deleted.")
+                    sleep(2)
+                    break
+                else:
+                    print("Invalid option. Press 'Enter' to continue...")
+                    input()
             
-            print("\nPress 'Enter' to return to the main menu...")
-            input()
             current_state = "main_menu"         
 
         # --- EXIT ---
