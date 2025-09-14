@@ -80,58 +80,38 @@ def basic_info(playlist_url: str) -> dict[str, Any]:
     except Exception as e:
         raise Exception(f"Could not fetch basic playlist info. Reason: {e}")
     
-def get_ffmpeg_path() -> Optional[str]:
-    """
-    Locates bundled ffmpeg executable when running as PyInstaller package.
+def get_dependencies_path(name: str) -> Optional[str]:
+    """Gets the path for a bundled dependency executable.
+
+    If the script is running as a PyInstaller package, this function returns the
+    absolute path to the specified dependency (e.g., ffmpeg, ffprobe).
+    
+    If the script is not running as a package, it provides a specific fallback:
+    - For "ffmpeg", it returns `None` (for yt-dlp's 'ffmpeg_location' option).
+    - For other names, it returns the name itself (for use with subprocess).
+
+    Args:
+        name (str): The name of the dependency to locate (e.g., "ffmpeg").
 
     Returns:
-        str: Path to bundled ffmpeg if available, None otherwise.
-    
-    Notes:
-        - Only relevant when app is packaged with PyInstaller
-        - Handles both Windows and Linux paths
+        Optional[str]: The absolute path to the dependency or a fallback value.
     """
     # When packaged by PyInstaller, sys.frozen is True and _MEIPASS points to a temp folder
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS #type: ignore
         
-        ffmpeg_executable = os.path.join(
+        executable = os.path.join(
             base_path,
             'dependencies',
             'windows' if os.name == 'nt' else 'linux',
-            'ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
+            f'{name}.exe' if os.name == 'nt' else name
         )
         
-        if os.path.exists(ffmpeg_executable):
-            return ffmpeg_executable
+        if os.path.exists(executable):
+            return executable
     
-    return None
+    return None if name == "ffmpeg" else name
 
-def get_ffprobe_path() -> str:
-    """
-    Individua l'eseguibile ffprobe incluso nel pacchetto PyInstaller.
-    Se non lo trova, ritorna 'ffprobe' assumendo che sia nel PATH di sistema.
-    """
-    # Questo blocco viene eseguito solo quando lo script è "congelato" da PyInstaller
-    if getattr(sys, 'frozen', False):
-        # sys._MEIPASS è un percorso temporaneo creato da PyInstaller all'avvio dell'exe
-        base_path = sys._MEIPASS #type: ignore
-        
-        # Costruisce il percorso completo all'eseguibile incluso
-        ffprobe_executable = os.path.join(
-            base_path,
-            'dependencies',
-            'windows' if os.name == 'nt' else 'linux',
-            'ffprobe.exe' if os.name == 'nt' else 'ffprobe'
-        )
-        
-        # Se il file esiste in quel percorso, lo usa
-        if os.path.exists(ffprobe_executable):
-            return ffprobe_executable
-    
-    # Se non è un eseguibile PyInstaller o il file non è stato trovato, 
-    # si affida al PATH di sistema (comportamento predefinito)
-    return 'ffprobe'
 
 def get_actual_file_quality(file_path: str) -> str:
     """
@@ -151,7 +131,7 @@ def get_actual_file_quality(file_path: str) -> str:
     try:
         # Questo comando chiede a ffprobe di mostrare le info sui flussi (streams) in formato JSON
         command = [
-            get_ffprobe_path(),
+            get_dependencies_path("ffprobe"),
             '-v', 'quiet',
             '-print_format', 'json',
             '-show_streams',
@@ -284,7 +264,7 @@ def make_config(path: str, format: str, quality: Optional[str]) -> dict:
    
     final_config = {**base_config, **format_opts}
 
-    ffmpeg_location = get_ffmpeg_path()
+    ffmpeg_location = get_dependencies_path("ffmpeg")
     if ffmpeg_location:
         final_config['ffmpeg_location'] = ffmpeg_location
    
