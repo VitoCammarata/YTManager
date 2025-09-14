@@ -58,61 +58,6 @@ def get_temp_dir(playlist_title: str) -> str:
     return temp_dir
 
 # --- Media Operations ---
-def get_actual_file_quality(file_path: str) -> str:
-    """
-    Inspects media file metadata to determine actual quality.
-
-    Args:
-        file_path: Path to the media file.
-
-    Returns:
-        str: Formatted quality string (e.g. "(1080p)", "(128kbps)") or empty string on error.
-
-    Notes:
-        - Uses ffprobe to extract stream information
-        - Handles both video (resolution) and audio (bitrate) formats
-        - Returns empty string on any error to avoid breaking the program
-    """
-    try:
-        # Questo comando chiede a ffprobe di mostrare le info sui flussi (streams) in formato JSON
-        command = [
-            'ffprobe',
-            '-v', 'quiet',
-            '-print_format', 'json',
-            '-show_streams',
-            file_path
-        ]
-        
-        # Esegui il comando e cattura l'output
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        
-        # Carica l'output JSON in un dizionario Python
-        media_info = json.loads(result.stdout)
-        
-        # Il primo flusso ('streams'[0]) è di solito quello che ci interessa
-        stream_info = media_info['streams'][0]
-        
-        if stream_info['codec_type'] == 'video':
-            # Per i video, prendiamo l'altezza (height)
-            height = stream_info.get('height')
-            return f"({height}p)" if height else ""
-        
-        elif stream_info['codec_type'] == 'audio':
-            # Per l'audio, prendiamo il bitrate in bits/sec e lo convertiamo in kbps
-            bit_rate = stream_info.get('bit_rate')
-            if bit_rate:
-                kbps = round(int(bit_rate) / 1000)
-                return f"({kbps}kbps)"
-            return ""
-
-    except (FileNotFoundError, subprocess.CalledProcessError, IndexError, KeyError) as e:
-        # Se ffprobe non viene trovato, o il file non ha info valide, o c'è un errore,
-        # restituiamo una stringa vuota per non rompere il programma.
-        # print(f"Could not get quality for {file_path}: {e}") # (opzionale, per debug)
-        return ""
-    
-    return ""
-
 def basic_info(playlist_url: str) -> dict[str, Any]:
     """
     Retrieve basic playlist information (entries list) via yt-dlp.
@@ -161,6 +106,87 @@ def get_ffmpeg_path() -> Optional[str]:
             return ffmpeg_executable
     
     return None
+
+def get_ffprobe_path() -> str:
+    """
+    Individua l'eseguibile ffprobe incluso nel pacchetto PyInstaller.
+    Se non lo trova, ritorna 'ffprobe' assumendo che sia nel PATH di sistema.
+    """
+    # Questo blocco viene eseguito solo quando lo script è "congelato" da PyInstaller
+    if getattr(sys, 'frozen', False):
+        # sys._MEIPASS è un percorso temporaneo creato da PyInstaller all'avvio dell'exe
+        base_path = sys._MEIPASS #type: ignore
+        
+        # Costruisce il percorso completo all'eseguibile incluso
+        ffprobe_executable = os.path.join(
+            base_path,
+            'dependencies',
+            'windows' if os.name == 'nt' else 'linux',
+            'ffprobe.exe' if os.name == 'nt' else 'ffprobe'
+        )
+        
+        # Se il file esiste in quel percorso, lo usa
+        if os.path.exists(ffprobe_executable):
+            return ffprobe_executable
+    
+    # Se non è un eseguibile PyInstaller o il file non è stato trovato, 
+    # si affida al PATH di sistema (comportamento predefinito)
+    return 'ffprobe'
+
+def get_actual_file_quality(file_path: str) -> str:
+    """
+    Inspects media file metadata to determine actual quality.
+
+    Args:
+        file_path: Path to the media file.
+
+    Returns:
+        str: Formatted quality string (e.g. "(1080p)", "(128kbps)") or empty string on error.
+
+    Notes:
+        - Uses ffprobe to extract stream information
+        - Handles both video (resolution) and audio (bitrate) formats
+        - Returns empty string on any error to avoid breaking the program
+    """
+    try:
+        # Questo comando chiede a ffprobe di mostrare le info sui flussi (streams) in formato JSON
+        command = [
+            get_ffprobe_path(),
+            '-v', 'quiet',
+            '-print_format', 'json',
+            '-show_streams',
+            file_path
+        ]
+        
+        # Esegui il comando e cattura l'output
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        
+        # Carica l'output JSON in un dizionario Python
+        media_info = json.loads(result.stdout)
+        
+        # Il primo flusso ('streams'[0]) è di solito quello che ci interessa
+        stream_info = media_info['streams'][0]
+        
+        if stream_info['codec_type'] == 'video':
+            # Per i video, prendiamo l'altezza (height)
+            height = stream_info.get('height')
+            return f"({height}p)" if height else ""
+        
+        elif stream_info['codec_type'] == 'audio':
+            # Per l'audio, prendiamo il bitrate in bits/sec e lo convertiamo in kbps
+            bit_rate = stream_info.get('bit_rate')
+            if bit_rate:
+                kbps = round(int(bit_rate) / 1000)
+                return f"({kbps}kbps)"
+            return ""
+
+    except (FileNotFoundError, subprocess.CalledProcessError, IndexError, KeyError) as e:
+        # Se ffprobe non viene trovato, o il file non ha info valide, o c'è un errore,
+        # restituiamo una stringa vuota per non rompere il programma.
+        # print(f"Could not get quality for {file_path}: {e}") # (opzionale, per debug)
+        return ""
+    
+    return ""
 
 def get_options(format: str, quality: Optional[str]) -> dict:
     """
