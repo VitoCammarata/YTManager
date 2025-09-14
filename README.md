@@ -3,11 +3,17 @@
 ![Licenza MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Ultima Release](https://img.shields.io/github/v/release/VitoCammarata/YTManager)
 
-<!-- Ti consiglio di aggiungere qui uno screenshot o una GIF del programma in azione! -->
-<!-- Esempio: <img src="screenshot.gif" width="700"> -->
+<p align="center">
+  <img src="assets/main_menu.png" width="650" alt="Menu Principale">
+</p>
+<p align="center">
+   <img src="assets/playlists_manager.png" width="650" alt="Inserimento URL">
+</p>
+<p align="center">
+   <img src="assets/delete_data_section.png" width="650" alt="Processo di Download">
+</p>
 
-
-[English Version](#english) | [Versione Italiana](#italiano)
+[Versione Italiana](#italiano) | [English Version](#english)
 
 ---
 
