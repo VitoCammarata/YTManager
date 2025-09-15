@@ -161,9 +161,6 @@ def get_actual_file_quality(file_path: str) -> str:
             return ""
 
     except (FileNotFoundError, subprocess.CalledProcessError, IndexError, KeyError) as e:
-        # Se ffprobe non viene trovato, o il file non ha info valide, o c'è un errore,
-        # restituiamo una stringa vuota per non rompere il programma.
-        # print(f"Could not get quality for {file_path}: {e}") # (opzionale, per debug)
         return ""
     
     return ""
@@ -413,8 +410,6 @@ def download_playlists(playlist_url: str, folder_name: str, playlist_title: str,
                 json_filename = get_playlist_state_path(playlist_title)
                 with open(json_filename, "w", encoding="utf-8") as f:
                     json.dump(titles_map, f, ensure_ascii=False, indent=4)
-
-                print(f"- {sanitized_title} downloaded.")
                  
             except Exception as e:
                 # Record the failure for this entry, but continue with the rest
@@ -753,8 +748,6 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
             # d. Save the updated state file
             with open(state_path, "w", encoding="utf-8") as f:
                 json.dump(local_data, f, ensure_ascii=False, indent=4)
-
-            print(f"- {sanitized_title} downloaded")
 
         except Exception as e:
             errors.append(("Download Error", f"Failed to download '{video_title}': {e}"))
