@@ -161,9 +161,6 @@ def get_actual_file_quality(file_path: str) -> str:
             return ""
 
     except (FileNotFoundError, subprocess.CalledProcessError, IndexError, KeyError) as e:
-        # Se ffprobe non viene trovato, o il file non ha info valide, o c'è un errore,
-        # restituiamo una stringa vuota per non rompere il programma.
-        # print(f"Could not get quality for {file_path}: {e}") # (opzionale, per debug)
         return ""
     
     return ""
