@@ -78,7 +78,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QScrollArea" name="scrollAreaPlaylists">
+           <widget class="QScrollArea" name="scrollArea">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -111,7 +111,23 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <item>
-               <layout class="QVBoxLayout" name="playlistsList"/>
+               <widget class="QWidget" name="playlistsList" native="true">
+                <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <item>
+                  <spacer name="verticalSpacer_2">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </widget>
               </item>
              </layout>
             </widget>
