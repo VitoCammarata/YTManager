@@ -25,7 +25,7 @@ class MyApp(QWidget):
             core.save_app_settings(appSettings)
             self.pathLine.clearFocus()
         else:
-            self.logOutput.append("Not a valid directory")
+            self.logsOutput.append("Not a valid directory")
 
     def select_directory(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -66,26 +66,26 @@ class MyApp(QWidget):
         self.urlInsertField.clear()
 
         if not directory or not os.path.isdir(directory):
-            self.logOutput.append("Error: Please select a valid download directory.")
+            self.logsOutput.append("Error: Please select a valid download directory.")
             return
 
         url, status = core.check_url(user_input, directory)
         
         if status == UrlCheckResult.INVALID_URL:
-            self.logOutput.append("This URL is invalid. Please insert a valid URL.")
+            self.logsOutput.append("This URL is invalid. Please insert a valid URL.")
         elif status == UrlCheckResult.URL_ALREADY_EXISTS:
-            self.logOutput.append("This playlist already exists in the current directory. Please choose a new directory.")
+            self.logsOutput.append("This playlist already exists in the current directory. Please choose a new directory.")
         elif status == UrlCheckResult.VALID_AND_NEW:
-            self.logOutput.append(f"URL is valid, fetching title from YouTube...")
+            self.logsOutput.append(f"URL is valid, fetching title from YouTube...")
 
             result_tuple = core.create_playlist_entry(url, directory)
             
             if result_tuple:
                 playlist_id, playlist_title = result_tuple
-                self.logOutput.append(f"Playlist '{playlist_title}' added successfully.")
+                self.logsOutput.append(f"Playlist '{playlist_title}' added successfully.")
                 self.add_playlist_button(playlist_title)
             else:
-                self.logOutput.append("Error: Could not fetch info. The playlist might be private or deleted.")
+                self.logsOutput.append("Error: Could not fetch info. The playlist might be private or deleted.")
 
 
 if __name__ == '__main__':
