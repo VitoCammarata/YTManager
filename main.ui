@@ -97,6 +97,12 @@
                  <height>25</height>
                 </size>
                </property>
+               <property name="inputMask">
+                <string/>
+               </property>
+               <property name="placeholderText">
+                <string>Select folder directory</string>
+               </property>
               </widget>
              </item>
              <item>
@@ -181,13 +187,6 @@
                  <property name="spacing">
                   <number>6</number>
                  </property>
-                 <item>
-                  <widget class="QPushButton" name="pushButton">
-                   <property name="text">
-                    <string>PushButton</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item>
                   <spacer name="verticalSpacer_2">
                    <property name="orientation">

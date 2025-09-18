@@ -54,22 +54,31 @@ class MyApp(QWidget):
 
     def add_playlist(self):
         user_input = self.urlInsertField.text()
+        directory = self.pathLine.text()
+
         self.urlInsertField.clear()
 
+        if not directory or not os.path.isdir(directory):
+            self.logOutput.append("Error: Please select a valid download directory.")
+            return
 
-        result = core.check_url(user_input)
+        url, status = core.check_url(user_input, directory)
         
-        if result[1] == UrlCheckResult.INVALID_URL:
+        if status == UrlCheckResult.INVALID_URL:
             self.logOutput.append("This URL is invalid. Please insert a valid URL.")
-        elif result[1] == UrlCheckResult.URL_ALREADY_EXISTS:
-            self.logOutput.append("This URL already exist in your list.")
-        elif result[1] == UrlCheckResult.VALID_AND_NEW:
-            playlist_title = core.create_playlist_entry(result[0])
-            if playlist_title:
-                self.logOutput.append(f"URL correctly saved. Playlist {playlist_title} successfully created.")
+        elif status == UrlCheckResult.URL_ALREADY_EXISTS:
+            self.logOutput.append("This playlist already exists in the current directory. Please choose a new directory.")
+        elif status == UrlCheckResult.VALID_AND_NEW:
+            self.logOutput.append(f"URL is valid, fetching title from YouTube...")
+
+            result_tuple = core.create_playlist_entry(url, directory)
+            
+            if result_tuple:
+                playlist_id, playlist_title = result_tuple
+                self.logOutput.append(f"Playlist '{playlist_title}' added successfully.")
                 self.add_playlist_button(playlist_title)
             else:
-                self.logOutput.append("Error: Could not fetch info for this playlist. It might be private or deleted.")
+                self.logOutput.append("Error: Could not fetch info. The playlist might be private or deleted.")
 
 
 if __name__ == '__main__':
