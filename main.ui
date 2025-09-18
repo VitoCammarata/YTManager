@@ -123,7 +123,8 @@
                 <string/>
                </property>
                <property name="icon">
-                <iconset theme="go-down"/>
+                <iconset theme="go-down">
+                 <normaloff>.</normaloff>.</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -300,7 +301,7 @@
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>130</height>
+               <height>150</height>
               </size>
              </property>
              <property name="placeholderText">

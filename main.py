@@ -27,19 +27,19 @@ class MyApp(QWidget):
         else:
             self.logOutput.append("Not a valid directory")
 
-    def load_initial_settings(self):
-        settings = core.load_app_settings()
-
-        last_dir = settings.get("last_directory", "")
-
-        self.pathLine.setText(last_dir)
-
     def select_directory(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
 
         if directory:
             self.pathLine.setText(directory)    
             self.save_directory()
+
+    def load_initial_settings(self):
+        settings = core.load_app_settings()
+
+        last_dir = settings.get("last_directory", "")
+
+        self.pathLine.setText(last_dir)
 
     def show_playlists_list(self):
         playlists_list = core.get_playlists_list()
