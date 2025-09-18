@@ -78,6 +78,59 @@
            </widget>
           </item>
           <item>
+           <widget class="QWidget" name="pahContainer" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="pathLine">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>25</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="viewPath">
+               <property name="minimumSize">
+                <size>
+                 <width>25</width>
+                 <height>25</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>25</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset theme="go-down"/>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>10</width>
+                 <height>10</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
            <widget class="QScrollArea" name="scrollArea">
             <property name="minimumSize">
              <size>
@@ -106,13 +159,35 @@
                <x>0</x>
                <y>0</y>
                <width>310</width>
-               <height>595</height>
+               <height>546</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QWidget" name="playlistsList" native="true">
-                <layout class="QVBoxLayout" name="verticalLayout_4">
+                <layout class="QVBoxLayout" name="verticalLayout_5">
+                 <property name="spacing">
+                  <number>6</number>
+                 </property>
+                 <item>
+                  <widget class="QPushButton" name="pushButton">
+                   <property name="text">
+                    <string>PushButton</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <spacer name="verticalSpacer_2">
                    <property name="orientation">
@@ -162,7 +237,7 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <property name="topMargin">
-            <number>20</number>
+            <number>30</number>
            </property>
            <item>
             <widget class="QWidget" name="urlRow" native="true">
@@ -173,8 +248,17 @@
               </size>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <property name="spacing">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLineEdit" name="urlInsertField">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>25</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string/>
                 </property>
@@ -185,6 +269,12 @@
               </item>
               <item>
                <widget class="QPushButton" name="addPlaylistButton">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>25</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Add Playlist</string>
                 </property>
@@ -211,8 +301,11 @@
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>150</height>
+               <height>130</height>
               </size>
+             </property>
+             <property name="placeholderText">
+              <string>Logs...</string>
              </property>
             </widget>
            </item>

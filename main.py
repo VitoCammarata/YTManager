@@ -1,5 +1,5 @@
-import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton
+import sys, os
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
 from PyQt6 import uic
 import core
 from core import UrlCheckResult
@@ -9,9 +9,36 @@ class MyApp(QWidget):
         super().__init__()
         uic.loadUi("main.ui", self)
 
+        self.viewPath.clicked.connect(self.select_directory)
+        self.pathLine.returnPressed.connect(self.save_directory)
         self.addPlaylistButton.clicked.connect(self.add_playlist)
 
-        self.initialize_playlists_list()
+        self.load_initial_settings()
+
+    def save_directory(self):
+        current_path = self.pathLine.text()
+
+        if current_path and os.path.isdir(current_path):
+            appSettings = core.load_app_settings()
+            appSettings["last_directory"] = current_path
+            core.save_app_settings(appSettings)
+            self.pathLine.clearFocus()
+        else:
+            self.logOutput.append("Directory non valida")
+
+    def load_initial_settings(self):
+        settings = core.load_app_settings()
+
+        last_dir = settings.get("last_directory", "")
+
+        self.pathLine.setText(last_dir)
+
+    def select_directory(self):
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+
+        if directory:
+            self.pathLine.setText(directory)    
+            self.save_directory()
 
     def initialize_playlists_list():
         pass

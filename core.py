@@ -53,6 +53,29 @@ def get_playlist_data_dir(playlist_title: str) -> str:
     os.makedirs(playlist_dir, exist_ok=True)
     return playlist_dir
 
+
+def load_app_settings() -> dict:
+    app_data_dir = get_app_data_dir()
+    file_settings_path = os.path.join(app_data_dir, "appSettings.json")
+
+    try:
+        with open(file_settings_path, "r", encoding="utf-8") as f:
+            appSettings = json.load(f)
+            if isinstance(appSettings, dict):
+                return appSettings
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    return {}
+
+def save_app_settings(app_data: dict):
+    app_data_dir = get_app_data_dir()
+    file_settings_path = os.path.join(app_data_dir, "appSettings.json")
+
+    with open(file_settings_path, "w", encoding="utf-8") as f:
+        json.dump(app_data, f, ensure_ascii=False, indent=4) 
+
+
 def validate_url(user_input: str) -> Optional[str]:
     url = user_input.strip()
 
