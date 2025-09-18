@@ -13,18 +13,19 @@ class MyApp(QWidget):
         self.pathLine.returnPressed.connect(self.save_directory)
         self.addPlaylistButton.clicked.connect(self.add_playlist)
 
+        self.show_playlists_list()
         self.load_initial_settings()
 
     def save_directory(self):
         current_path = self.pathLine.text()
 
-        if current_path and os.path.isdir(current_path):
+        if (current_path and os.path.isdir(current_path)) or current_path == "":
             appSettings = core.load_app_settings()
             appSettings["last_directory"] = current_path
             core.save_app_settings(appSettings)
             self.pathLine.clearFocus()
         else:
-            self.logOutput.append("Directory non valida")
+            self.logOutput.append("Not a valid directory")
 
     def load_initial_settings(self):
         settings = core.load_app_settings()
@@ -40,8 +41,14 @@ class MyApp(QWidget):
             self.pathLine.setText(directory)    
             self.save_directory()
 
-    def initialize_playlists_list():
-        pass
+    def show_playlists_list(self):
+        playlists_list = core.get_playlists_list()
+
+        for data in playlists_list:
+            playlist_title = data.get("title")
+            if playlist_title:
+                self.add_playlist_button(playlist_title)
+
 
     def add_playlist_button(self, playlist_title):
         playlist_button = QPushButton(playlist_title)
