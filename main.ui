@@ -225,8 +225,11 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="addURLs">
           <property name="minimumSize">
@@ -302,7 +305,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QTextBrowser" name="logsOutput">
+            <widget class="QTextBrowser" name="urlLogsOutput">
              <property name="maximumSize">
               <size>
                <width>16777215</width>
@@ -316,7 +319,48 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="managePlaylist"/>
+         <widget class="QWidget" name="managePlaylist">
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <property name="topMargin">
+            <number>9</number>
+           </property>
+           <item alignment="Qt::AlignRight">
+            <widget class="QPushButton" name="backButton">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>25</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Back</string>
+             </property>
+             <property name="icon">
+              <iconset theme="go-previous"/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTextBrowser" name="playlistsLogsOutput">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>200</height>
+              </size>
+             </property>
+             <property name="placeholderText">
+              <string>Logs...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </widget>
        </item>
       </layout>
