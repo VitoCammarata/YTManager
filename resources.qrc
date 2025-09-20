@@ -1,0 +1,12 @@
+<RCC>
+  <qresource prefix="/">
+    <file>assets/gui_icons/angle-small-down.svg</file>
+    <file>assets/gui_icons/down-to-line.svg</file>
+    <file>assets/gui_icons/folder-open.svg</file>
+    <file>assets/gui_icons/refresh.svg</file>
+    <file>assets/gui_icons/youtube.svg</file>
+    <file>assets/gui_icons/arrow-left.svg</file>
+    <file>assets/gui_icons/cross-circle.svg</file>
+    <file>assets/gui_icons/plus.svg</file>
+  </qresource>
+</RCC>

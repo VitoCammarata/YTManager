@@ -132,3 +132,10 @@ def create_playlist_entry(url: str, directory: str) -> Optional[tuple[str, str]]
     create_playlist_data_dir(playlist_id)
 
     return (playlist_id, playlist_title)
+
+def playlist_state(playlist_id:str) -> bool:
+    playlist_data_dir = create_playlist_data_dir(playlist_id)
+
+    playlist_settings_filepath = os.path.join(playlist_data_dir, f"{playlist_id}.json")
+
+    return os.path.isfile(playlist_settings_filepath)

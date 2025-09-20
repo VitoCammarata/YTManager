@@ -1,7 +1,9 @@
 import sys, os, subprocess, webbrowser
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QLineEdit
+from PyQt6.QtGui import QIcon
 from PyQt6 import uic
 import core
+import resources_rc
 from core import UrlCheckResult
 
 class MyApp(QWidget):
@@ -91,10 +93,21 @@ class MyApp(QWidget):
         self.stateName.setText(state if state else "N/A")
         self.stateName.setCursorPosition(0)
 
+        playlist_id = playlist_data.get("id")
+        if playlist_id:
+            playlist_downloaded = core.playlist_state(playlist_id)
+
+            if playlist_downloaded:
+                self.downloadUpdateButton.setText("UPDATE")
+                self.downloadUpdateButton.setIcon(QIcon.fromTheme("view-refresh"))
+            else:
+                self.downloadUpdateButton.setText("DOWNLOAD")
+                self.downloadUpdateButton.setIcon(QIcon(":/assets/gui_icons/down-to-line.svg"))
+
+
 
     def show_playlist_directory(self, directory: str):
         playlist_directory = os.path.join(self.directoryName.text(), self.titleName.text())
-        print(playlist_directory)
         
         if playlist_directory and os.path.isdir(playlist_directory):
             try:

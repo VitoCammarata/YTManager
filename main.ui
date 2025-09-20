@@ -123,13 +123,13 @@
                 <string/>
                </property>
                <property name="icon">
-                <iconset theme="go-down">
-                 <normaloff>.</normaloff>.</iconset>
+                <iconset resource="resources.qrc">
+                 <normaloff>:/assets/gui_icons/angle-small-down.svg</normaloff>:/assets/gui_icons/angle-small-down.svg</iconset>
                </property>
                <property name="iconSize">
                 <size>
-                 <width>10</width>
-                 <height>10</height>
+                 <width>16</width>
+                 <height>16</height>
                 </size>
                </property>
               </widget>
@@ -229,7 +229,7 @@
           <string notr="true"/>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="addURLs">
           <property name="minimumSize">
@@ -270,7 +270,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>16777215</width>
+                  <width>480</width>
                   <height>25</height>
                  </size>
                 </property>
@@ -296,8 +296,24 @@
                   <height>25</height>
                  </size>
                 </property>
+                <property name="font">
+                 <font>
+                  <pointsize>10</pointsize>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="layoutDirection">
+                 <enum>Qt::RightToLeft</enum>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true"/>
+                </property>
                 <property name="text">
-                 <string>Add Playlist</string>
+                 <string>ADD PLAYLIST</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="resources.qrc">
+                  <normaloff>:/assets/gui_icons/plus.svg</normaloff>:/assets/gui_icons/plus.svg</iconset>
                 </property>
                </widget>
               </item>
@@ -336,10 +352,11 @@
               </size>
              </property>
              <property name="text">
-              <string>Back</string>
+              <string>BACK</string>
              </property>
              <property name="icon">
-              <iconset theme="edit-redo"/>
+              <iconset resource="resources.qrc">
+               <normaloff>:/assets/gui_icons/arrow-left.svg</normaloff>:/assets/gui_icons/arrow-left.svg</iconset>
              </property>
             </widget>
            </item>
@@ -364,33 +381,8 @@
                  <cursorShape>CrossCursor</cursorShape>
                 </property>
                 <layout class="QGridLayout" name="gridLayout_2">
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="title">
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <italic>false</italic>
-                     <bold>true</bold>
-                     <underline>false</underline>
-                     <strikeout>false</strikeout>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">color: rgb(0, 0, 0);</string>
-                   </property>
-                   <property name="text">
-                    <string>TITLE:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="1">
-                  <widget class="QLineEdit" name="titleName">
+                 <item row="2" column="1">
+                  <widget class="QLineEdit" name="urlName">
                    <property name="maximumSize">
                     <size>
                      <width>400</width>
@@ -420,6 +412,169 @@
                    </property>
                    <property name="readOnly">
                     <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="2">
+                  <widget class="QPushButton" name="openDirectory">
+                   <property name="maximumSize">
+                    <size>
+                     <width>40</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="palette">
+                    <palette>
+                     <active>
+                      <colorrole role="Button">
+                       <brush brushstyle="SolidPattern">
+                        <color alpha="255">
+                         <red>50</red>
+                         <green>50</green>
+                         <blue>50</blue>
+                        </color>
+                       </brush>
+                      </colorrole>
+                     </active>
+                     <inactive>
+                      <colorrole role="Button">
+                       <brush brushstyle="SolidPattern">
+                        <color alpha="255">
+                         <red>50</red>
+                         <green>50</green>
+                         <blue>50</blue>
+                        </color>
+                       </brush>
+                      </colorrole>
+                     </inactive>
+                     <disabled>
+                      <colorrole role="Button">
+                       <brush brushstyle="SolidPattern">
+                        <color alpha="255">
+                         <red>50</red>
+                         <green>50</green>
+                         <blue>50</blue>
+                        </color>
+                       </brush>
+                      </colorrole>
+                     </disabled>
+                    </palette>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="resources.qrc">
+                     <normaloff>:/assets/gui_icons/folder-open.svg</normaloff>:/assets/gui_icons/folder-open.svg</iconset>
+                   </property>
+                   <property name="iconSize">
+                    <size>
+                     <width>16</width>
+                     <height>16</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="1">
+                  <widget class="QLineEdit" name="stateName">
+                   <property name="maximumSize">
+                    <size>
+                     <width>400</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">background:transparent</string>
+                   </property>
+                   <property name="frame">
+                    <bool>false</bool>
+                   </property>
+                   <property name="cursorPosition">
+                    <number>0</number>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                   </property>
+                   <property name="dragEnabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="0">
+                  <widget class="QLabel" name="state">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: rgb(0, 0, 0);</string>
+                   </property>
+                   <property name="text">
+                    <string>STATE:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QLabel" name="quality">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: rgb(0, 0, 0);</string>
+                   </property>
+                   <property name="text">
+                    <string>QUALITY:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="url">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: rgb(0, 0, 0);</string>
+                   </property>
+                   <property name="text">
+                    <string>URL:</string>
                    </property>
                   </widget>
                  </item>
@@ -479,94 +634,6 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="2">
-                  <widget class="QPushButton" name="openDirectory">
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string/>
-                   </property>
-                   <property name="icon">
-                    <iconset theme="folder"/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="url">
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">color: rgb(0, 0, 0);</string>
-                   </property>
-                   <property name="text">
-                    <string>URL:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="1">
-                  <widget class="QLineEdit" name="urlName">
-                   <property name="maximumSize">
-                    <size>
-                     <width>400</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">background:transparent</string>
-                   </property>
-                   <property name="frame">
-                    <bool>false</bool>
-                   </property>
-                   <property name="cursorPosition">
-                    <number>0</number>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                   </property>
-                   <property name="dragEnabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="2">
-                  <widget class="QPushButton" name="go_to_YT">
-                   <property name="maximumSize">
-                    <size>
-                     <width>40</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string/>
-                   </property>
-                   <property name="icon">
-                    <iconset theme="applications-multimedia"/>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="3" column="0">
                   <widget class="QLabel" name="format">
                    <property name="maximumSize">
@@ -589,8 +656,25 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="1">
-                  <widget class="QLineEdit" name="formatName">
+                 <item row="2" column="2">
+                  <widget class="QPushButton" name="go_to_YT">
+                   <property name="maximumSize">
+                    <size>
+                     <width>40</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="resources.qrc">
+                     <normaloff>:/assets/gui_icons/youtube.svg</normaloff>:/assets/gui_icons/youtube.svg</iconset>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QLineEdit" name="titleName">
                    <property name="maximumSize">
                     <size>
                      <width>400</width>
@@ -620,28 +704,6 @@
                    </property>
                    <property name="readOnly">
                     <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="0">
-                  <widget class="QLabel" name="quality">
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">color: rgb(0, 0, 0);</string>
-                   </property>
-                   <property name="text">
-                    <string>QUALITY:</string>
                    </property>
                   </widget>
                  </item>
@@ -679,30 +741,8 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="5" column="0">
-                  <widget class="QLabel" name="state">
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>25</height>
-                    </size>
-                   </property>
-                   <property name="font">
-                    <font>
-                     <pointsize>12</pointsize>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">color: rgb(0, 0, 0);</string>
-                   </property>
-                   <property name="text">
-                    <string>STATE:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="5" column="1">
-                  <widget class="QLineEdit" name="stateName">
+                 <item row="3" column="1">
+                  <widget class="QLineEdit" name="formatName">
                    <property name="maximumSize">
                     <size>
                      <width>400</width>
@@ -733,6 +773,85 @@
                    <property name="readOnly">
                     <bool>true</bool>
                    </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="title">
+                   <property name="maximumSize">
+                    <size>
+                     <width>100</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <italic>false</italic>
+                     <bold>true</bold>
+                     <underline>false</underline>
+                     <strikeout>false</strikeout>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: rgb(0, 0, 0);</string>
+                   </property>
+                   <property name="text">
+                    <string>TITLE:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="1">
+                  <widget class="QWidget" name="playlistUtilityButtons" native="true">
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>50</height>
+                    </size>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_3">
+                    <property name="spacing">
+                     <number>50</number>
+                    </property>
+                    <item>
+                     <widget class="QPushButton" name="downloadUpdateButton">
+                      <property name="maximumSize">
+                       <size>
+                        <width>150</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::RightToLeft</enum>
+                      </property>
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="deleteButton">
+                      <property name="maximumSize">
+                       <size>
+                        <width>150</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="layoutDirection">
+                       <enum>Qt::RightToLeft</enum>
+                      </property>
+                      <property name="autoFillBackground">
+                       <bool>false</bool>
+                      </property>
+                      <property name="text">
+                       <string>DELETE</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="resources.qrc">
+                        <normaloff>:/assets/gui_icons/cross-circle.svg</normaloff>:/assets/gui_icons/cross-circle.svg</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </widget>
                  </item>
                 </layout>
@@ -780,6 +899,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
