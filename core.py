@@ -122,8 +122,10 @@ def create_playlist_entry(url: str, directory: str) -> Optional[tuple[str, str]]
     new_playlist_data = {
         "id": playlist_id,
         "title": playlist_title,
+        "directory": directory,
         "url": url,
-        "directory": directory
+        "format": "",
+        "quality": ""
     }
     playlists_list.append(new_playlist_data)
     save_playlists_list(playlists_list)

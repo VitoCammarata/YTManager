@@ -1,5 +1,5 @@
-import sys, os
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
+import sys, os, subprocess, webbrowser
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QLineEdit
 from PyQt6 import uic
 import core
 from core import UrlCheckResult
@@ -13,6 +13,8 @@ class MyApp(QWidget):
         self.pathLine.returnPressed.connect(self.save_directory)
         self.addPlaylistButton.clicked.connect(self.add_playlist)
         self.backButton.clicked.connect(self.show_add_playlists_page)
+        self.openDirectory.clicked.connect(self.show_playlist_directory)
+        self.go_to_YT.clicked.connect(self.youtube_redirect)
 
         self.show_playlists_list()
         self.load_initial_settings()
@@ -45,11 +47,11 @@ class MyApp(QWidget):
     def show_playlists_list(self):
         playlists_list = core.get_playlists_list()
 
-        for data in playlists_list:
-            playlist_title = data.get("title")
-            playlist_id = data.get("id")
+        for playlist_data in playlists_list:
+            playlist_title = playlist_data.get("title")
+            playlist_id = playlist_data.get("id")
             if playlist_title and playlist_id:
-                self.add_playlist_button(playlist_title, playlist_id)
+                self.add_playlist_buttons(playlist_title, playlist_id)
 
     def show_add_playlists_page(self):
         self.rightSide.setCurrentWidget(self.addURLs)
@@ -65,19 +67,56 @@ class MyApp(QWidget):
 
         playlists_list = core.get_playlists_list()
         target_playlist_data = None
-        for p_data in playlists_list:
-            if p_data.get("id") == playlist_id:
-                target_playlist_data = p_data
+        for playlist_data in playlists_list:
+            if playlist_data.get("id") == playlist_id:
+                target_playlist_data = playlist_data
                 break
-        
-        if not target_playlist_data:
+                
+        if target_playlist_data:
+            self.show_playlist_data(target_playlist_data)
+            self.rightSide.setCurrentWidget(self.managePlaylist)
+        else:
             self.playlistsLogsOutput.append(f"Error: Could not find data for this playlist")
             return
 
-        self.rightSide.setCurrentWidget(self.managePlaylist)
+    def show_playlist_data(self, playlist_data: dict):
+
+        for key, value in playlist_data.items():
+            if key != "id":
+                button_name = getattr(self, f"{key}Name")
+                button_name.setText(value if value else "N/A")
+                button_name.setCursorPosition(0)
+
+        state = ""
+        self.stateName.setText(state if state else "N/A")
+        self.stateName.setCursorPosition(0)
 
 
-    def add_playlist_button(self, playlist_title: str, playlist_id: str):
+    def show_playlist_directory(self, directory: str):
+        playlist_directory = os.path.join(self.directoryName.text(), self.titleName.text())
+        print(playlist_directory)
+        
+        if playlist_directory and os.path.isdir(playlist_directory):
+            try:
+                if sys.platform == "win32":
+                    os.startfile(playlist_directory)
+                else:
+                    subprocess.Popen(["open", playlist_directory])
+            except Exception as e:
+                self.playlistsLogsOutput.append(f"Error opening directory: {e}")
+        else:
+            self.playlistsLogsOutput.append("Error: Directory not found.")
+
+    def youtube_redirect(self, url: str):
+        url = self.urlName.text()
+
+        if url:
+            webbrowser.open(url)
+        else:
+            self.playlistsLogsOutput.append("Error: URL for this playlist is missing.")
+
+
+    def add_playlist_buttons(self, playlist_title: str, playlist_id: str):
         playlist_button = QPushButton(playlist_title)
         playlist_button.setObjectName(playlist_title)
         playlist_button.setProperty("playlist_id", playlist_id)
@@ -112,7 +151,7 @@ class MyApp(QWidget):
             if result_tuple:
                 playlist_id, playlist_title = result_tuple
                 self.urlLogsOutput.append(f"Playlist '{playlist_title}' added successfully.")
-                self.add_playlist_button(playlist_title, playlist_id)
+                self.add_playlist_buttons(playlist_title, playlist_id)
             else:
                 self.urlLogsOutput.append("Error: Could not fetch info. The playlist might be private or deleted.")
 
