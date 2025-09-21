@@ -84,11 +84,13 @@ class MyApp(QWidget):
     def show_playlist_data(self, playlist_data: dict):
 
         for key, value in playlist_data.items():
+            if key == "directory":
+                value = os.path.join(value, playlist_data["title"].strip())
             if key != "id":
-                button_name = getattr(self, f"{key}Name")
-                button_name.setText(value if value else "N/A")
-                button_name.setCursorPosition(0)
-
+                data_value = getattr(self, f"{key}Name")
+                data_value.setText(value if value else "N/A")
+                data_value.setCursorPosition(0)
+                
         state = ""
         self.stateName.setText(state if state else "N/A")
         self.stateName.setCursorPosition(0)
@@ -106,15 +108,15 @@ class MyApp(QWidget):
 
 
 
-    def show_playlist_directory(self, directory: str):
-        playlist_directory = os.path.join(self.directoryName.text(), self.titleName.text())
+    def show_playlist_directory(self):
+        playlist_directory = self.directoryName.text()
         
         if playlist_directory and os.path.isdir(playlist_directory):
             try:
                 if sys.platform == "win32":
                     os.startfile(playlist_directory)
                 else:
-                    subprocess.Popen(["open", playlist_directory])
+                    subprocess.Popen(["xdg-open", playlist_directory])
             except Exception as e:
                 self.playlistsLogsOutput.append(f"Error opening directory: {e}")
         else:

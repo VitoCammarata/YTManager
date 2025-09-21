@@ -131,6 +131,9 @@ def create_playlist_entry(url: str, directory: str) -> Optional[tuple[str, str]]
     save_playlists_list(playlists_list)
     create_playlist_data_dir(playlist_id)
 
+    playlist_download_dir = os.path.join(directory, playlist_title)
+    os.makedirs(playlist_download_dir, exist_ok=True)
+
     return (playlist_id, playlist_title)
 
 def playlist_state(playlist_id:str) -> bool:
