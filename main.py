@@ -1,15 +1,62 @@
 import sys, os, subprocess, webbrowser
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QLineEdit
+from typing import Optional
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QLineEdit, QDialog
 from PyQt6.QtGui import QIcon
 from PyQt6 import uic
 import core
 import resources_rc
 from core import UrlCheckResult
 
+class DownloadOptions(QDialog):
+    AUDIO_FORMATS = ['mp3', 'm4a', 'flac', 'opus', 'wav']
+    VIDEO_FORMATS = ['mp4', 'mkv', 'webm']
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        uic.loadUi("download_options_dialog.ui", self)
+
+        self.formatsList.currentTextChanged.connect(self.update_quality_state)
+
+        self.update_quality_state(self.formatsList.currentText())
+
+    def update_quality_state(self, format):
+
+        if format.lower() in self.AUDIO_FORMATS:
+            self.qualityList.setEnabled(False)
+            self.qualityList.clear()
+            self.qualityList.addItem("BEST")
+
+        elif format.lower() in self.VIDEO_FORMATS:
+            self.qualityList.setEnabled(True)
+            
+            if self.qualityList.count() == 1 and self.qualityList.itemText(0) == "BEST":
+                self.qualityList.clear()
+                self.qualityList.addItems([
+                    "4k (2160p)",
+                    "2K (1440p)",
+                    "Full HD (1080p)",
+                    "HD (720p)",
+                    "Standard (480p)",
+                    "Low (360p)"
+                ])
+
+    def get_selected_options(self) -> tuple[str, Optional[str]]:
+        format = self.formatsList.currentText()
+        quality = None
+        
+        if self.qualityList.isEnabled():
+            quality_text = self.qualityList.currentText()
+            quality = quality_text[quality_text.find("(")+1:quality_text.find("p")]
+
+        return (format.lower(), quality)
+
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi("main.ui", self)
+
+        #Istance variable for saving playlist_id
+        self.playlist_id = None
 
         self.viewPath.clicked.connect(self.select_directory)
         self.pathLine.returnPressed.connect(self.save_directory)
@@ -17,6 +64,7 @@ class MyApp(QWidget):
         self.backButton.clicked.connect(self.show_add_playlists_page)
         self.openDirectory.clicked.connect(self.show_playlist_directory)
         self.go_to_YT.clicked.connect(self.youtube_redirect)
+        self.downloadUpdateButton.clicked.connect(self.handle_download_or_update)
 
         self.show_playlists_list()
         self.load_initial_settings()
@@ -66,6 +114,7 @@ class MyApp(QWidget):
         playlist_id = playlist_button.property("playlist_id")
         if not playlist_id:
             return
+        self.playlist_id = playlist_id
 
         playlists_list = core.get_playlists_list()
         target_playlist_data = None
@@ -87,26 +136,49 @@ class MyApp(QWidget):
             if key == "directory":
                 value = os.path.join(value, playlist_data["title"].strip())
             if key != "id":
-                data_value = getattr(self, f"{key}Name")
-                data_value.setText(value if value else "N/A")
-                data_value.setCursorPosition(0)
-                
-        state = ""
-        self.stateName.setText(state if state else "N/A")
-        self.stateName.setCursorPosition(0)
+                try:
+                    data_value = getattr(self, f"{key}Name")
+                    data_value.setText((value if key != "quality" else (value if value == "BEST" else f"{value}p")) if value else "N/A")
+                    data_value.setCursorPosition(0)
+                except AttributeError:
+                    pass
 
         playlist_id = playlist_data.get("id")
-        if playlist_id:
-            playlist_downloaded = core.playlist_state(playlist_id)
 
+        if playlist_id:
+            local_count, remote_count = core.check_playlist_state(playlist_id)
+
+            if remote_count is None:
+                state_string = f"Local: {local_count} (Could not verify online)"
+            
+            elif local_count == 0 and remote_count > 0:
+                state_string = f"Not downloaded ({local_count}/{remote_count} videos)"
+                
+            elif local_count == remote_count and local_count > 0:
+                state_string = f"Synced ({local_count}/{remote_count} videos)"
+                
+            elif local_count < remote_count:
+                state_string = f"Update needed ({local_count}/{remote_count} videos)"
+
+            elif local_count > remote_count:
+                state_string = f"Needs verification ({local_count}/{remote_count} videos)"
+
+            else:
+                state_string = "N/A (Playlist empty?)"
+
+            self.stateName.setText(state_string)
+            self.stateName.setCursorPosition(0)
+
+            playlist_downloaded = core.get_playlist_state(playlist_id)
             if playlist_downloaded:
                 self.downloadUpdateButton.setText("UPDATE")
                 self.downloadUpdateButton.setIcon(QIcon.fromTheme("view-refresh"))
             else:
                 self.downloadUpdateButton.setText("DOWNLOAD")
                 self.downloadUpdateButton.setIcon(QIcon(":/assets/gui_icons/down-to-line.svg"))
-
-
+        else:
+            self.stateName.setText("N/A")
+            self.stateName.setCursorPosition(0)
 
     def show_playlist_directory(self):
         playlist_directory = self.directoryName.text()
@@ -169,6 +241,49 @@ class MyApp(QWidget):
                 self.add_playlist_buttons(playlist_title, playlist_id)
             else:
                 self.urlLogsOutput.append("Error: Could not fetch info. The playlist might be private or deleted.")
+
+    def handle_download_or_update(self):
+        button_text = self.downloadUpdateButton.text()
+        if button_text == "DOWNLOAD":
+            self.download_playlist()
+        elif button_text == "UPDATE":
+            self.update_playlist()
+
+    def download_playlist(self):
+        downloadOptionsDialog = DownloadOptions(self)
+
+        if downloadOptionsDialog.exec() == QDialog.DialogCode.Accepted:
+            format, quality = downloadOptionsDialog.get_selected_options()
+
+            self.playlistsLogsOutput.setText(f"Starting download for '{self.titleName.text()}'...")
+            QApplication.processEvents()
+
+            errors = core.download_playlist(
+                self.urlName.text(), 
+                self.directoryName.text(), 
+                self.playlist_id, 
+                format,
+                quality
+            )
+
+            if errors:
+                self.playlistsLogsOutput.append("\n<font color='orange'>Download completed with some errors:</font>")
+                for video_title, error_message in errors:
+                    self.playlistsLogsOutput.append(f"- <b>{video_title}</b>: {error_message}")
+            else:
+                self.playlistsLogsOutput.append("\n<font color='green'>Download completed successfully!</font>")
+
+            playlists_list = core.get_playlists_list()
+            updated_playlist_data = next((p for p in playlists_list if p.get("id") == self.playlist_id), None)
+            if updated_playlist_data:
+                self.show_playlist_data(updated_playlist_data)
+
+        else:
+            self.playlistsLogsOutput.append("Download cancelled.")
+            return
+
+    def update_playlist(self):
+        pass
 
 
 if __name__ == '__main__':
