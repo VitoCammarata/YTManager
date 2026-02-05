@@ -341,6 +341,61 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
     
     return errors
 
+def read_urls_from_file(file_path: str) -> tuple[list[str], list[str]]:
+    """
+    Reads a text file and extracts YouTube playlist URLs following the 'Name:URL' format.
+
+    Args:
+        file_path (str): The absolute or relative path to the text file.
+
+    Returns:
+        tuple[list[str], list[str]]: A tuple containing two lists:
+            1. A list of valid playlist URLs found in the file.
+            2. A list of playlist names that were skipped due to invalid URLs.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+    """
+    valid_urls = []
+    skipped_playlists = []
+    
+    # Check if the file exists before attempting to open it
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File '{file_path}' not found.")
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        # Read all lines to handle empty files correctly
+        lines = f.readlines()
+        
+        # If the file is empty, return empty lists immediately
+        if not lines:
+            return [], []
+
+        for line in lines:
+            line = line.strip()
+            # Skip empty lines
+            if not line: 
+                continue
+            
+            # structural check: split the line at the first colon only
+            parts = line.split(':', 1)
+            
+            if len(parts) == 2:
+                name = parts[0].strip()
+                url = parts[1].strip()
+                
+                # Basic validation: check for standard YouTube playlist identifiers
+                if "https://" in url and "list=" in url:
+                    valid_urls.append(url)
+                else:
+                    # Structure is correct (Name:URL), but the URL itself is invalid.
+                    # We track the name to warn the user later.
+                    skipped_playlists.append(name)
+            
+            # Lines missing a colon are ignored as structural errors
+
+    return valid_urls, skipped_playlists
+
 def download_playlists(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
     """
     Downloads an entire playlist with error recovery and state tracking.

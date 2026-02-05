@@ -166,6 +166,47 @@ def playlists_urls_aquisition(user_choice: str) -> list[str]:
         # This normalizes many possible YouTube playlist url formats to a single canonical form.
         elif "https://" in user_input and "list=" in user_input:
             check_url(PLAYLIST_URL_TYPE + user_input.split("list=")[-1].split("&")[0])
+
+        elif user_input == "url.txt":
+            try:
+                valid_urls, skipped_names = core.read_urls_from_file(user_input)
+                
+                if not valid_urls and not skipped_names:
+                    print("\nThe file structure is incorrect.")
+                    print("Press Enter to continue...")
+                    input()
+                    clear_screen()
+                    continue
+
+                print(f"\nImporting from {user_input}...")
+                sleep(1)
+
+                for raw_url in valid_urls:
+                    clean_link = PLAYLIST_URL_TYPE + raw_url.split("list=")[-1].split("&")[0]
+                    
+                    check_url(clean_link)
+
+                    print("\n" + "### --- YOUTUBE MANAGER --- ###".center(columns) + "\n")
+                    print(f"Importing from {user_input}...\n")
+                    for j, url in enumerate(playlists_urls):
+                        print(f"URL {j+1}: {url}")
+                    
+                    sleep(1)
+                
+                if skipped_names:
+                    print("\nWARNING: Some playlists were skipped due to invalid URLs:")
+                    for name in skipped_names:
+                        print(f" - '{name}'")
+                
+                print("\nImport finished. Press Enter to continue...")
+                input()
+                clear_screen()
+
+            except Exception as e:
+                print(f"\nError: {e}")
+                print("Press Enter to continue...")
+                input()
+                clear_screen()
         else:
             print("\nInvalid input. Press Enter to continue...")
             input()
