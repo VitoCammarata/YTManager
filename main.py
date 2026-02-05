@@ -301,8 +301,8 @@ if __name__ == "__main__":
                         for error in errors:
                             print(f" - {error}")
                     else:
-                        print("\nDownload completed successfully for all playlists!")
-                        sleep(2)
+                        print("\nDownload completed successfully for all playlists!\nPress Enter to continue")
+                        input()
 
                     current_state = "main_menu"
                     break
@@ -397,8 +397,8 @@ if __name__ == "__main__":
                 for error in errors:
                     print(f" - {error}")
             else:
-                print("\nDownload completed successfully for all videos!")
-                sleep(1)
+                print("\nDownload completed successfully for all videos!\nPress Enter to continue")
+                input()
 
             current_state = "main_menu"
 

@@ -9,7 +9,12 @@ from pathvalidate import sanitize_filename
 yt_config = {
     "extract_flat": True,
     "quiet": True,
-    "noplaylistunavailablevideos": True
+    "noplaylistunavailablevideos": True,
+    "remote_components": "ejs:github",
+    "remote_components": ["ejs:github"],
+    "js_runtimes": {
+        "node": {}
+    }
 }
 
 # Standard YouTube URL patterns
@@ -251,7 +256,11 @@ def make_config(path: str, format: str, quality: Optional[str]) -> dict:
         "writethumbnail": True,
         "quiet": True,
         "ignoreerrors": True,
-        
+        "remote_components": ["ejs:github"],
+        "js_runtimes": {
+            "node": {}
+        },
+
         "parse_metadata": [
             "artist:%(artist|channel)s",
             "album:%(album|playlist_title)s",
