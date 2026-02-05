@@ -47,7 +47,7 @@ YTManager is a simple yet powerful application that lets you download YouTube vi
 
 ### How to Use
 
-1.  **System Requirements (Linux):** Ensure **Node.js** (v20+) is installed to avoid runtime warnings and ensure full compatibility.
+1.  **System Requirements:** Ensure **Node.js** (v20+) is installed to avoid runtime warnings and ensure full compatibility.
     ```bash
     sudo apt install nodejs
     ```
