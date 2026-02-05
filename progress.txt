@@ -1,5 +1,0 @@
-5 febbraio 2026:
-    -ho aggiunto node.js perche dava warning.
-    -ora quando finisce di scaricare chiede di premere Eneter prima di andare avanti
-    -si possono caricare piu url di playlists con un file url.txt (deve chiamarsi cosi)
-     in cui si deve mettere Nome_Playlist:url
