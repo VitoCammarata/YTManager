@@ -51,13 +51,12 @@ YTManager is a simple yet powerful application that lets you download YouTube vi
 1.  **Download the latest version** from the [**Releases**](https://github.com/VitoCammarata/YTManager/releases) section of this repository.
 2.  Place the executable file in the folder where you want your downloads to be saved.
 3.  Run the program and follow the simple on-screen instructions.
-    *   **Windows:** Double-click `YTManager.exe`.
-    *   **Linux:** Open a terminal and run it with `./YTManager`.
+    *   Open a terminal and run it with `./YTManager`.
 
 ### Important Notes
 
 *   **Public Content:** The application works with public or unlisted videos and playlists. Private content is not supported.
-*   **Configuration Data:** To keep your download folders 100% clean, YTManager now saves all its working files (playlist states, backups, temp files) in a dedicated system folder (`AppData` on Windows, `~/.local/share` on Linux). Your downloaded media files are never touched.
+*   **Configuration Data:** To keep your download folders 100% clean, YTManager now saves all its working files (playlist states, backups, temp files) in a dedicated system folder (`~/.local/share`). Your downloaded media files are never touched.
 
 ### For Developers
 
