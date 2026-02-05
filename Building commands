@@ -1,3 +1,0 @@
-Linux: pyinstaller --name YtManager --onefile --add-data="dependencies:dependencies" --icon=icon.ico main.py
-
-Windows: pyinstaller --name YtManager --onefile --add-data="dependencies;dependencies" --icon=icon.ico main.py
