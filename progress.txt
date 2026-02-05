@@ -1,0 +1,5 @@
+5 febbraio 2026    
+    -ho aggiunto nodejs
+    -ora dopo che finisce il download si preme Enter per continuare
+    -ho aggiunto la possibilita di inserire piu playlist tramite un file che deve
+    chiamarsi url.txt e dentro deve avere NomePlaylist:url
