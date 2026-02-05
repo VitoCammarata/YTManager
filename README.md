@@ -16,7 +16,7 @@
 ---
 
 <a name="english"></a>
-## 🇬🇧 YTManager 2.0
+## YTManager 2.0
 
 ### Your Personal YouTube Library, Offline and On Your Terms
 
