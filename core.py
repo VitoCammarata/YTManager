@@ -108,8 +108,8 @@ def get_dependencies_path(name: str) -> Optional[str]:
         executable = os.path.join(
             base_path,
             'dependencies',
-            'windows' if os.name == 'nt' else 'linux',
-            f'{name}.exe' if os.name == 'nt' else name
+            'linux',
+            name
         )
         
         if os.path.exists(executable):
