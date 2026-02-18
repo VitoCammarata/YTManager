@@ -339,8 +339,11 @@ if __name__ == "__main__":
                     # Report download errors (if any)
                     if errors:
                         print("\nSome errors occurred during the download:")
-                        for error in errors:
-                            print(f" - {error}")
+                        for playlist, video, msg in errors:
+                            print(f" - [{playlist}] {video}: {msg}")
+
+                        print("\n\nPress Enter to continue")
+                        input()
                     else:
                         print("\nDownload completed successfully for all playlists!\nPress Enter to continue")
                         input()
@@ -384,19 +387,21 @@ if __name__ == "__main__":
                                 files_format = ask_for_format()
                                 errors.extend(core.download_new_videos(youtube_videos, playlist_title, folder_name, files_format))
 
-
                         except Exception as e:
                             # Record the high-level failure for reporting
-                            errors.append(("UPDATE FAILED", f"A critical error occurred: {e}"))
+                            errors.append((playlist_title, "UPDATE FAILED", f"A critical error occurred: {e}"))
 
                     # Report update errors (if any)
                     if errors:
                         print("\nSome errors occurred during the update:")
-                        for error_type, error_msg in errors:
-                            print(f" - [{error_type}] {error_msg}")
+                        for playlist, error_type, error_msg in errors:
+                            print(f" - [{playlist}]: [{error_type}] {error_msg}")
+
+                        print("\n\nPress Enter to continue")
+                        input()
                     else:
-                        print("\nUpdate completed successfully for all playlists!")
-                        sleep(2)
+                        print("\nUpdate completed successfully for all playlists!\nPress 'Enter' to continue...")
+                        input()
 
                     current_state = "main_menu"
                     break
@@ -435,10 +440,13 @@ if __name__ == "__main__":
 
             if errors:
                 print("\nSome errors occurred during the download:")
-                for error in errors:
-                    print(f" - {error}")
+                for category, video, msg in errors:
+                    print(f" - [{category}] {video}: {msg}")
+
+                print("\nPress Enter to continue")
+                input()
             else:
-                print("\nDownload completed successfully for all videos!\nPress Enter to continue")
+                print("\nDownload completed successfully!\nPress Enter to continue")
                 input()
 
             current_state = "main_menu"

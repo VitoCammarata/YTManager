@@ -288,7 +288,7 @@ def make_path(folder_name: str) -> str:
     """
     return os.path.join(folder_name, f".{os.path.basename(folder_name)}.json")
 
-def download_video(video_url: list[str], format: str, quality: Optional[str]) -> list[tuple[str, str]]:
+def download_video(video_url: list[str], format: str, quality: Optional[str]) -> list[tuple[str, str, str]]:
     """
     Download one or more single videos into the current directory.
 
@@ -337,7 +337,7 @@ def download_video(video_url: list[str], format: str, quality: Optional[str]) ->
 
             # Collect errors per-video without stopping the whole batch
             except Exception as e:
-                errors.append((video_title, str(e)))
+                errors.append(("Single Video", video_title, str(e)))
     
     return errors
 
@@ -396,7 +396,7 @@ def read_urls_from_file(file_path: str) -> tuple[list[str], list[str]]:
 
     return valid_urls, skipped_playlists
 
-def download_playlists(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str]]:
+def download_playlists(playlist_url: str, folder_name: str, playlist_title: str, format: str, quality: Optional[str]) -> list[tuple[str, str, str]]:
     """
     Downloads an entire playlist with error recovery and state tracking.
 
@@ -479,14 +479,14 @@ def download_playlists(playlist_url: str, folder_name: str, playlist_title: str,
                  
             except Exception as e:
                 # Record the failure for this entry, but continue with the rest
-                errors.append((entry.get('title', 'Unknown'), str(e)))
+                errors.append((playlist_title, entry.get('title', 'Unknown'), str(e)))
                 continue
 
     # Attempt to remove temporary folder and report errors if unable
     try:
         shutil.rmtree(temp_folder)
     except Exception as e:
-        errors.append(("temp cleanup failed", str(e)))
+        errors.append((playlist_title, "temp cleanup failed", str(e)))
 
     return errors
 
@@ -572,7 +572,7 @@ def detect_format(folder_name: str) -> Optional[str]:
     # If the loop finishes without finding any suitable file
     return None
 
-def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str]]:
+def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str, str]]:
     """
     Compares local state with online and removes obsolete files.
 
@@ -606,7 +606,6 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
     # Detect media format from existing files
     file_format = detect_format(folder_name)
     if not file_format:
-        errors.append(("Cleanup Warning", "Could not detect media format. Skipping cleanup."))
         return errors
 
     # Process each deleted video
@@ -631,12 +630,12 @@ def cleanup_deleted_videos(online_videos: list, playlist_title: str, folder_name
 
         except OSError as e:
             # We add the error to our list and continue with the next file.
-            errors.append(("Deletion Error", f"Could not delete file {filename_to_delete}: {e}"))
+            errors.append((playlist_title, "Deletion Error", f"Could not delete file {filename_to_delete}: {e}"))
             continue
             
     return errors
 
-def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str]]:
+def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: str) -> list[tuple[str, str, str]]:
     """
     Reorders local files to match the current online playlist order.
 
@@ -690,12 +689,12 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
         # Create backup ONLY if there are files to rename
         backup_path, backup_error = folder_backup(folder_name, playlist_title)
         if backup_error:
-            errors.append(("Backup Error", backup_error))
+            errors.append((playlist_title, "Backup Error", backup_error))
             return errors
 
         file_format = detect_format(folder_name)
         if not file_format:
-            errors.append(("Reorder Warning", "Could not detect media format. Skipping reorder."))
+            errors.append((playlist_title, "Reorder Warning", "Could not detect media format. Skipping reorder."))
             return errors
 
         for file in files_to_rename:
@@ -712,19 +711,19 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
                 with open(state_path, "w", encoding="utf-8") as f:
                     json.dump(local_data, f, ensure_ascii=False, indent=4)
             else:
-                errors.append(("File Not Found", f"Could not find file to rename: {old_filename}"))
+                errors.append((playlist_title, "File Not Found", f"Could not find file to rename: {old_filename}"))
 
     except Exception as e:
         # --- Step 3: Rollback on Critical Failure ---
-        errors.append(("CRITICAL REORDER FAILED", f"An error occurred: {e}. Attempting to restore from backup."))
+        errors.append((playlist_title, "CRITICAL REORDER FAILED", f"An error occurred: {e}. Attempting to restore from backup."))
         if backup_path and os.path.isdir(backup_path):
             try:
                 # Simple restore: remove the broken folder and replace it with the backup
                 shutil.rmtree(folder_name)
                 shutil.copytree(backup_path, folder_name)
-                errors.append(("Restore Success", "Successfully restored folder from backup."))
+                errors.append((playlist_title, "Restore Success", "Successfully restored folder from backup."))
             except Exception as restore_e:
-                errors.append(("CRITICAL RESTORE FAILED", f"Could not restore from backup: {restore_e}"))
+                errors.append((playlist_title, "CRITICAL RESTORE FAILED", f"Could not restore from backup: {restore_e}"))
         raise  # Re-raise the exception to stop the update process in main
 
     finally:
@@ -734,11 +733,11 @@ def reorder_local_videos(online_videos: list, playlist_title: str, folder_name: 
             try:
                 shutil.rmtree(backup_path)
             except Exception as clean_e:
-                errors.append(("Backup Cleanup Failed", str(clean_e)))
+                errors.append((playlist_title, "Backup Cleanup Failed", str(clean_e)))
 
     return errors
 
-def download_new_videos(online_videos: list, playlist_title: str, folder_name: str, format: str) -> list[tuple[str, str]]:
+def download_new_videos(online_videos: list, playlist_title: str, folder_name: str, format: str) -> list[tuple[str, str, str]]:
     """
     Downloads new videos that are in the online playlist but not locally.
 
@@ -818,7 +817,7 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
             print(f"- {sanitized_title} downloaded")
 
         except Exception as e:
-            errors.append(("Download Error", f"Failed to download '{video_title}': {e}"))
+            errors.append((playlist_title, "Download Error", f"Failed to download '{video_title}': {e}"))
             # Clean up the temp folder to avoid issues with the next video
             for f in os.listdir(temp_folder):
                 os.remove(os.path.join(temp_folder, f))
@@ -828,7 +827,7 @@ def download_new_videos(online_videos: list, playlist_title: str, folder_name: s
     try:
         shutil.rmtree(temp_folder)
     except Exception as e:
-        errors.append(("Temp Cleanup Failed", str(e)))
+        errors.append((playlist_title, "Temp Cleanup Failed", str(e)))
 
     return errors
 
